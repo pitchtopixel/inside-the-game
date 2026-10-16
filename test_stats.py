@@ -108,6 +108,36 @@ def test_synthetic(full):
     rate = alert_rate(st)
     check("6. insight alert rate 1-3 per 10 min, all goals alerted",
           1 <= rate <= 3 and goals_alerted == sum(ft["score"].values()), f"{rate:.1f}/10min, goals {goals_alerted}")
+    check("7. clean match has no rejected events", not ft["rejected_events"], str(ft["rejected_events"]))
+    check("8. snapshot carries schema version", ft.get("schema_version") == "1.0", str(ft.get("schema_version")))
+    test_bad_input(data)
+
+
+def test_bad_input(data):
+    """Duplicates, malformed, out-of-order and unknown-team events: skipped and counted, never fatal."""
+    from stream_server import validate
+    st = MatchState({"match": data["match"], "teams": data["teams"]})
+    good = data["events"][:50]
+    bad = [
+        good[10],                                            # duplicate
+        {"type": "pass"},                                    # malformed
+        "not an event",                                      # not an object
+        {**good[49], "event_id": "x-1", "elapsed_s": 1.0},   # out of order
+        {**good[49], "event_id": "x-2", "team": "ZZZ"},      # unknown team
+        {**good[49], "event_id": "x-3", "type": "pass", "x": None,
+         "details": {"distance_m": "far"}},                  # valid shape, bad value: breaks a handler
+    ]
+    try:
+        for ev in good + bad:
+            st.update(ev)
+        crashed = False
+    except Exception as e:
+        crashed = repr(e)
+    rej = dict(st.rejected)
+    check("9. engine survives bad input and counts it",
+          not crashed and sum(rej.values()) == len(bad), f"crash={crashed} rejected={rej}")
+    clean, n_rej = validate(good + [good[10], {"type": "pass"}, "junk"])
+    check("10. streamer drops duplicates & malformed", len(clean) == 50 and n_rej == 3, f"kept {len(clean)}, rejected {n_rej}")
 
 
 def test_metrica(full):
@@ -126,9 +156,12 @@ def test_metrica(full):
         check(f"8. {tid} avg pass distance 12-25 m", 12 <= s["avg_pass_distance_m"] <= 25, f"{s['avg_pass_distance_m']} m")
         check(f"9. {tid} avg ball speed 20-110 km/h", 20 <= (s["avg_ball_speed_kmh"] or 0) <= 110,
               f"{s['avg_ball_speed_kmh']} km/h")
+        check(f"11. {tid} avg pass difficulty computed (0.15-0.5)",
+              0.15 <= (s["avg_pass_difficulty"] or 0) <= 0.5, f"{s['avg_pass_difficulty']}")
     swings = sum(a["type"] == "momentum" for a in st.alerts)
     check("10. momentum swings 1-10", 1 <= swings <= 10, f"{swings}")
-    check("    score matches source", ft["score"] == data["match"]["final_score"], str(ft["score"]))
+    check("12. score matches source", ft["score"] == data["match"]["final_score"], str(ft["score"]))
+    check("13. no rejected events", not ft["rejected_events"], str(ft["rejected_events"]))
 
 
 def main():

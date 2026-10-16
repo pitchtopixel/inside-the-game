@@ -13,6 +13,8 @@ import math
 import os
 import random
 
+from metrics import pass_difficulty, xg_model
+
 SEED = 7
 MATCH_ID = "match_001"
 OUT_DIR = os.path.join("data", "synthetic")
@@ -66,18 +68,6 @@ def clamp(v, lo, hi):
 
 def other(side):
     return "away" if side == "home" else "home"
-
-
-def goal_angle(x, y):
-    dx, dy = L - x, y - W / 2
-    a = math.atan2(7.32 * dx, dx * dx + dy * dy - 3.66 ** 2)
-    return a + math.pi if a < 0 else a
-
-
-def xg_model(x, y, header=False):
-    d = math.hypot(L - x, W / 2 - y)
-    xg = 1 / (1 + math.exp(-(-1.2 + 1.4 * goal_angle(x, y) - 0.11 * d)))
-    return round(xg * (0.65 if header else 1.0), 3)
 
 
 class Sim:
@@ -198,10 +188,10 @@ class Sim:
             while self.t < self.period_len[period]:
                 self.tick()
                 self.step()
+            self.period_len[period] = round(self.t, 1)  # actual length: the last action can run past the plan
             self.emit("period_end", score=self.score_dict())
-            self.base += self.period_len[period]
-        self.t = self.period_len[2]
-        self.base -= self.period_len[2]
+            if period == 1:
+                self.base += self.t
         self.physical_update()
         self.emit("match_end", score=self.score_dict())
 
@@ -314,11 +304,11 @@ class Sim:
         else:
             sub = "long" if dist >= 30 else "medium" if dist >= 15 else "short"
         high = sub in ("cross", "switch", "long") and rng.random() < 0.85
-        difficulty = (0.1 + min(dist, 60) / 60 * 0.35 + max(0, dx) / 45 * 0.2 + (0.18 if pressured else 0)
-                      + (0.12 if ex > 88 else 0) + (0.1 if cross else 0) + rng.uniform(-0.04, 0.04))
-        difficulty = round(clamp(difficulty, 0.05, 0.95), 2)
+        noise = rng.uniform(-0.04, 0.04)  # unseen factors: affects the outcome, not the reported metric
+        difficulty = pass_difficulty(dist, dx, pressured, ex, cross)
         skill = self.players[pid]["attributes"]["pass_skill"]
-        p_success = clamp(1.25 - 1.58 * difficulty + (skill - 0.8) * 0.8 + 0.05 * m, 0.1, 0.98)
+        p_success = clamp(1.25 - 1.58 * pass_difficulty(dist, dx, pressured, ex, cross, noise)
+                          + (skill - 0.8) * 0.8 + 0.05 * m, 0.1, 0.98)
         speed = round(clamp((45 + dist * 0.85 if high else 22 + dist * 1.25) + rng.gauss(0, 5), 15, 115), 1)
         complete = rng.random() < p_success
 

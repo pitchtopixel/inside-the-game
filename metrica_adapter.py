@@ -10,7 +10,8 @@ import os
 
 import pandas as pd
 
-from generate_match import HALF, L, W, xg_model
+from generate_match import HALF
+from metrics import L, W, xg_model
 
 SRC = os.path.join("data", "raw", "metrica", "Sample_Game_1_RawEventsData.csv")
 TEAM_IDS = {"Home": "HOM", "Away": "AWY"}

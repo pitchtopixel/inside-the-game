@@ -9,9 +9,12 @@ Pure Python, no I/O - feed it events one at a time.
 Coordinates follow the generator: home attacks towards x=105 in period 1, towards x=0 in period 2.
 """
 
+import math
 from collections import defaultdict, deque
 
-L = 105.0
+from metrics import L, W, pass_difficulty, xg_model
+
+SCHEMA_VERSION = "1.0"  # snapshot + alert format, see docs/schemas.md
 
 THRESHOLDS = {
     "window_s": 300,                  # rolling window for momentum / rhythm / pressure
@@ -85,6 +88,8 @@ class MatchState:
         self.records = {"sprint": 0.0, "shot": 0.0}
         self.km_milestone_done = False
         self.alerts, self._new = [], []
+        self.period_start_t = 0.0
+        self.seen, self.rejected = set(), defaultdict(int)  # bad input is skipped and counted, never fatal
 
     # ---------- helpers ----------
     def other(self, team):
@@ -93,6 +98,9 @@ class MatchState:
     def x_rel(self, team, x):
         """x in the team's attacking frame (always attacking towards 105)."""
         return x if (team == self.home) == (self.period == 1) else L - x
+
+    def y_rel(self, team, y):
+        return y if (team == self.home) == (self.period == 1) else W - y
 
     def name(self, pid):
         return self.names.get(pid, pid)
@@ -121,8 +129,35 @@ class MatchState:
         self.poss_team, self.spell_passes, self.spell_alerted = team, 0, False
 
     # ---------- main entry ----------
+    def _reject_reason(self, ev):
+        if not isinstance(ev, dict):
+            return "not_an_object"
+        if not isinstance(ev.get("event_id"), str) or not isinstance(ev.get("type"), str):
+            return "malformed"
+        if not isinstance(ev.get("elapsed_s"), (int, float)) or not isinstance(ev.get("period"), int):
+            return "malformed"
+        if ev["event_id"] in self.seen:
+            return "duplicate"
+        if self.last_t is not None and ev["elapsed_s"] < self.last_t - 1.0:
+            return "out_of_order"
+        if ev.get("team") is not None and ev["team"] not in self.teams:
+            return "unknown_team"
+        return None
+
     def update(self, ev):
         self._new = []
+        reason = self._reject_reason(ev)
+        if reason:
+            self.rejected[reason] += 1
+            return []
+        self.seen.add(ev["event_id"])
+        try:
+            return self._apply(ev)
+        except (KeyError, TypeError, ValueError, AttributeError):
+            self.rejected["handler_error"] += 1
+            return self._new
+
+    def _apply(self, ev):
         t = ev["elapsed_s"]
         if self.poss_team is not None and self.last_t is not None and t > self.last_t:
             self.teams[self.poss_team]["possession_s"] += t - self.last_t
@@ -149,13 +184,21 @@ class MatchState:
 
     # ---------- event handlers ----------
     def _on_period_start(self, ev, team, pid, d):
+        # New half: ends swap and play restarts, so rolling patterns start fresh.
         self.poss_team = None
+        self.window.clear()
+        self.candidate, self.candidate_n = None, 0
+        self.period_start_t = ev["elapsed_s"]
 
     def _on_pass(self, ev, team, pid, d):
         ts, ps = self.teams[team], self.players[pid]
-        dist = d.get("distance_m") or 0.0
-        diff = d.get("difficulty")
         complete = ev.get("outcome") == "complete"
+        dist, diff = d.get("distance_m"), None
+        if None not in (ev.get("x"), ev.get("y"), ev.get("end_x"), ev.get("end_y")):
+            dist = dist or math.hypot(ev["end_x"] - ev["x"], ev["end_y"] - ev["y"])
+            sx, ex = self.x_rel(team, ev["x"]), self.x_rel(team, ev["end_x"])
+            diff = pass_difficulty(dist, ex - sx, bool(d.get("pressured")), ex, d.get("subtype") == "cross")
+        dist = dist or 0.0
         for s in (ts, ps):
             s["passes"] += 1
             s["passes_complete"] += complete
@@ -183,7 +226,10 @@ class MatchState:
 
     def _on_shot(self, ev, team, pid, d):
         ts, ps = self.teams[team], self.players[pid]
-        xg, speed, outcome = d.get("xg") or 0.0, d.get("shot_speed_kmh") or 0.0, ev.get("outcome") or "unknown"
+        xg, speed, outcome = d.get("xg"), d.get("shot_speed_kmh") or 0.0, ev.get("outcome") or "unknown"
+        if xg is None and ev.get("x") is not None:
+            xg = xg_model(self.x_rel(team, ev["x"]), self.y_rel(team, ev["y"]), d.get("body_part") == "head")
+        xg = xg or 0.0
         for s in (ts, ps):
             s["shots"] += 1
             s["xg"] += xg
@@ -284,7 +330,7 @@ class MatchState:
         start = self.now - self.th["window_s"]
         while self.window and self.window[0][0] < start:
             self.window.popleft()
-        if self.now < self.th["warmup_s"]:
+        if self.now - self.period_start_t < self.th["warmup_s"]:
             return
         agg = defaultdict(float)
         for _, team, metric, value in self.window:
@@ -322,7 +368,7 @@ class MatchState:
                             team, pressures=int(p), opponent_pressures=int(po))
 
         # Rhythm: control vs chaos
-        mins = self.th["window_s"] / 60
+        mins = min(self.th["window_s"], self.now - self.period_start_t) / 60
         tpm = (agg[(h, "turnover")] + agg[(a, "turnover")]) / mins
         poss_h, poss_a = agg[(h, "poss")], agg[(a, "poss")]
         poss_share_h = poss_h / (poss_h + poss_a) if poss_h + poss_a else 0.5
@@ -372,9 +418,10 @@ class MatchState:
                             "pass_accuracy_pct": pct(p["passes_complete"], p["passes"]),
                             "avg_pass_difficulty": round(p["pass_difficulty"] / p["pass_difficulty_n"], 2) if p["pass_difficulty_n"] else None}
             del players[pid]["pass_difficulty"], players[pid]["pass_difficulty_n"]
-        return {"period": self.period, "clock": self.clock, "elapsed_s": self.now, "score": dict(self.score),
+        return {"schema_version": SCHEMA_VERSION, "period": self.period, "clock": self.clock,
+                "elapsed_s": self.now, "score": dict(self.score),
                 "teams": teams,
                 "momentum": {"window_s": self.th["window_s"], "threat_share_pct": self.momentum_share,
                              "on_top": self.dominant},
                 "rhythm": {"state": self.rhythm, **self.rhythm_info},
-                "players": players, "alerts_total": len(self.alerts)}
+                "players": players, "alerts_total": len(self.alerts), "rejected_events": dict(self.rejected)}

@@ -32,8 +32,13 @@ REQUIRED = {"event_id": str, "type": str, "period": int, "elapsed_s": (int, floa
 
 
 def validate(events):
-    """Drop malformed events, sort by match time, return (clean, rejected_count)."""
-    clean = [e for e in events if all(isinstance(e.get(k), t) for k, t in REQUIRED.items())]
+    """Drop malformed and duplicate events, sort by match time, return (clean, rejected_count)."""
+    clean, seen = [], set()
+    for e in events:
+        if isinstance(e, dict) and all(isinstance(e.get(k), t) for k, t in REQUIRED.items()) \
+                and e["event_id"] not in seen:
+            seen.add(e["event_id"])
+            clean.append(e)
     clean.sort(key=lambda e: e["elapsed_s"])
     return clean, len(events) - len(clean)
 
