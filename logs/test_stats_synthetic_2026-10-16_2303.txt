@@ -1,0 +1,106 @@
+log: logs\test_stats_synthetic_2026-10-16_2303.txt
+
+== Half-time  (45+1:44) ==
+                             Riverside     Northgate
+goals                                3             0
+possession_pct                    60.4          39.6
+shots                               11             6
+shots_on_target                      7             4
+xg                                 2.2          0.42
+big_chances                          2             0
+passes                             263           205
+pass_accuracy_pct                 78.3          71.2
+avg_pass_distance_m               21.4          22.6
+avg_pass_difficulty               0.32          0.33
+hard_passes_completed             3/14          2/11
+final_third_passes                  37            64
+tackles_won                       4/10          2/14
+interceptions                       37            41
+pressures                           42            74
+fouls                                1             8
+yellow_cards                         0             2
+corners                              3             2
+turnovers                           70            70
+fastest_shot_kmh                  92.6          98.6
+avg_ball_speed_kmh                50.2          51.4
+momentum (last 5'): {'RIV': 0.0, 'NGR': 100.0}  on top: NGR
+rhythm: {'state': 'balanced', 'turnovers_per_min': 2.6, 'avg_spell_s': 23.1, 'possession_share': {'RIV': 57.7, 'NGR': 42.3}}
+
+== Full-time  (90+4:45) ==
+                             Riverside     Northgate
+goals                                4             1
+possession_pct                    54.3          45.7
+shots                               24            10
+shots_on_target                     15             7
+xg                                3.44           1.1
+big_chances                          2             0
+passes                             508           491
+pass_accuracy_pct                 76.4          72.5
+avg_pass_distance_m               22.1          22.2
+avg_pass_difficulty               0.33          0.33
+hard_passes_completed             6/22          5/20
+final_third_passes                 117           109
+tackles_won                      12/26         12/40
+interceptions                       91            87
+pressures                          129           128
+fouls                                4            13
+yellow_cards                         0             2
+corners                              7             7
+turnovers                          156           157
+fastest_shot_kmh                 100.4          98.6
+avg_ball_speed_kmh                51.0          51.0
+momentum (last 5'): {'RIV': 92.9, 'NGR': 7.1}  on top: RIV
+rhythm: {'state': 'chaos', 'turnovers_per_min': 4.0, 'avg_spell_s': 15.0, 'possession_share': {'RIV': 39.2, 'NGR': 60.8}}
+
+== Alerts: 34 total ==  {'goal': 5, 'momentum': 9, 'possession_streak': 4, 'big_chance': 1, 'card': 2, 'sprint_record': 2, 'pressure_spell': 1, 'substitution': 6, 'rhythm': 4}
+insight alerts per 10 min: [3, 2, 3, 2, 2, 2, 3, 2, 1, 1]
+     02:26  ⚽ GOAL! Arribas scores for Riverside. Riverside 1-0 Northgate
+     03:58  ⚡ Momentum shift: Riverside on top - 77% of the threat in the last 5 minutes
+     06:36  🔗 Riverside keep the ball: 12 passes in a row
+     09:03  🎯 Big chance for Arribas (Riverside) - xG 0.47, off target
+     13:29  🔗 Northgate keep the ball: 12 passes in a row
+     13:58  ⚡ Momentum shift: Northgate on top - 69% of the threat in the last 5 minutes
+     17:27  ⚽ GOAL! Arribas scores for Riverside - that's a brace. Riverside 2-0 Northgate
+     21:00  🟨 Yellow card: Brandt (Northgate)
+     21:57  ⚡ Momentum shift: Riverside on top - 79% of the threat in the last 5 minutes
+     23:06  🔗 Northgate keep the ball: 12 passes in a row
+     25:57  ⚡ Momentum shift: Northgate on top - 99% of the threat in the last 5 minutes
+     27:15  🟨 Yellow card: Quintela (Northgate)
+     31:59  ⚡ Momentum shift: Riverside on top - 96% of the threat in the last 5 minutes
+     35:13  🏃 Top speed of the match: Delcourt hits 34.1 km/h
+     35:29  ⚽ GOAL! Arribas scores for Riverside - HAT-TRICK. Riverside 3-0 Northgate
+     44:58  ⚡ Momentum shift: Northgate on top - 100% of the threat in the last 5 minutes
+     47:11  🏃 Top speed of the match: Delcourt hits 35.0 km/h
+     52:13  🔥 Riverside pressing hard: 16 pressures in 5 minutes
+     53:10  ⚽ GOAL! Brandt scores for Northgate. Riverside 3-1 Northgate
+     57:54  🔗 Northgate keep the ball: 12 passes in a row
+     59:16  ⚡ Momentum shift: Riverside on top - 94% of the threat in the last 5 minutes
+     60:04  🔁 Substitution Northgate: Davi Albuquerque on for Rousselin
+     62:15  🌀 Control phase: Northgate dictating with 70% of the ball
+     65:15  ⚡ Momentum shift: Northgate on top - 84% of the threat in the last 5 minutes
+     70:09  🔁 Substitution Northgate: Théo Lefèvre on for Sosa
+     71:15  ⚽ GOAL! Arribas scores for Riverside. Riverside 4-1 Northgate
+     71:15  🌀 Control phase: Riverside dictating with 84% of the ball
+     73:17  ⚡ Momentum shift: Riverside on top - 95% of the threat in the last 5 minutes
+     78:19  🔁 Substitution Riverside: Théo Duverger on for Ferrandis
+     79:11  🔁 Substitution Riverside: Sem de Ridder on for Adeyemo
+     80:02  🔁 Substitution Riverside: Haruto Morimoto on for Arribas
+     80:16  🌀 Chaos phase: the ball is changing hands 5.2 times a minute
+     84:25  🔁 Substitution Northgate: Rohan Menon on for Kessler
+   90+2:14  🌀 Chaos phase: the ball is changing hands 4.0 times a minute
+
+== Checks (synthetic) ==
+  [PASS] 1. score matches generator  {'RIV': 4, 'NGR': 1}
+  [PASS] 2. RIV counts (shots, passes, tackles, cards)  (24, 508, 26, 0) vs (24, 508, 26, 0)
+  [PASS] 2. NGR counts (shots, passes, tackles, cards)  (10, 491, 40, 2) vs (10, 491, 40, 2)
+  [PASS] 3. possession sums to 100  100.0
+  [PASS] 4. RIV pass accuracy & xG  76.4% / 3.44 vs 76.4% / 3.44
+  [PASS] 4. NGR pass accuracy & xG  72.5% / 1.1 vs 72.5% / 1.1
+     spell NGR 8'-14': on top 40% of the time -> detected
+     spell NGR 20'-29': on top 46% of the time -> detected
+     spell RIV 73'-82': on top 85% of the time -> detected
+     spell RIV 74'-81': on top 91% of the time -> detected
+  [PASS] 5. momentum spells detected (>=3 of 4)  4/4
+  [PASS] 6. insight alert rate 1-3 per 10 min, all goals alerted  2.2/10min, goals 5
+
+8/8 checks passed -> PASS

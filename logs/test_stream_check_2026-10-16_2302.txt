@@ -1,0 +1,3 @@
+log: logs\test_stream_check_2026-10-16_2302.txt
+received 2154/2154  in_order=True  max_timing_drift=0.09s
+PASS

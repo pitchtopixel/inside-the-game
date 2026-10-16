@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Stream Test</title>
+<style>
+  body { font-family: system-ui, sans-serif; margin: 0; padding: 16px; background: #0f1419; color: #e6e6e6; }
+  .bar { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-bottom: 12px; }
+  button, select, input { background: #1f2933; color: #e6e6e6; border: 1px solid #3a4652; border-radius: 6px; padding: 6px 10px; }
+  #score { font-size: 24px; font-weight: 700; }
+  #clock { font-variant-numeric: tabular-nums; color: #9fb3c8; }
+  #log { height: 70vh; overflow-y: auto; background: #151b22; border-radius: 8px; padding: 8px; font: 13px/1.5 ui-monospace, monospace; }
+  .goal { color: #4ade80; font-weight: 700; } .shot { color: #facc15; } .card { color: #f87171; } .meta { color: #7c8a99; }
+</style>
+</head>
+<body>
+  <div class="bar">
+    <span id="score">– : –</span>
+    <span id="clock">00:00</span>
+    <span id="status" class="meta">connecting…</span>
+  </div>
+  <div class="bar">
+    <button onclick="send({cmd:'play'})">Play</button>
+    <button onclick="send({cmd:'pause'})">Pause</button>
+    <button onclick="send({cmd:'restart'})">Restart</button>
+    <label>Speed <select onchange="send({cmd:'speed', value:+this.value})">
+      <option>1</option><option selected>10</option><option>60</option><option>300</option>
+    </select></label>
+    <label>Jump to min <input id="min" type="number" min="0" max="95" value="45" style="width:60px"></label>
+    <button onclick="send({cmd:'seek', minute:+document.getElementById('min').value})">Go</button>
+    <label><input id="hideNoise" type="checkbox" checked> hide passes/pressure</label>
+  </div>
+  <div id="log"></div>
+<script>
+  const log = document.getElementById('log');
+  let teams = {}, players = {}, score = {};
+  const ws = new WebSocket(`ws://${location.host}/ws`);
+  const send = (m) => ws.send(JSON.stringify(m));
+  const noisy = new Set(['pass', 'pressure', 'physical_update', 'possession_change']);
+
+  function line(e) {
+    const who = e.player_name ? ` ${e.player_name}` : '';
+    const d = e.details || {};
+    let text = `${e.clock.padEnd(8)} ${(e.team || '').padEnd(4)} ${e.type}${who}`;
+    if (e.outcome) text += ` → ${e.outcome}`;
+    if (e.type === 'shot') text += ` (xG ${d.xg}, ${d.shot_speed_kmh} km/h)`;
+    if (e.type === 'pass') text += ` (${d.subtype}, ${d.distance_m} m, diff ${d.difficulty})`;
+    if (e.type === 'sprint') text += ` (${d.top_speed_kmh} km/h)`;
+    if (e.type === 'goal') text += `  ${JSON.stringify(d.score)}`;
+    if (e.type === 'substitution') text += ` ⇄ ${d.player_in_name}`;
+    if (e.type === 'card') text += ` (${d.card})`;
+    return text;
+  }
+
+  function show(e) {
+    document.getElementById('clock').textContent = e.clock;
+    if (e.details && e.details.score) { score = e.details.score; renderScore(); }
+    if (document.getElementById('hideNoise').checked && noisy.has(e.type)) return;
+    const div = document.createElement('div');
+    div.className = ['goal', 'shot', 'card'].includes(e.type) ? e.type : (e.team ? '' : 'meta');
+    div.textContent = line(e);
+    log.appendChild(div);
+    log.scrollTop = log.scrollHeight;
+  }
+
+  function renderScore() {
+    const h = teams.home, a = teams.away;
+    if (!h) return;
+    document.getElementById('score').textContent =
+      `${h.short_name} ${score[h.team_id] ?? 0} : ${score[a.team_id] ?? 0} ${a.short_name}`;
+  }
+
+  ws.onmessage = (msg) => {
+    const m = JSON.parse(msg.data);
+    if (m.kind === 'meta') { teams = m.teams; renderScore(); }
+    else if (m.kind === 'catchup') {
+      if (m.reset) { log.innerHTML = ''; score = {}; renderScore(); }
+      m.events.forEach(show);
+    }
+    else if (m.kind === 'event') show(m.event);
+    else if (m.kind === 'status')
+      document.getElementById('status').textContent =
+        `${m.playing ? '▶ playing' : '⏸ paused'} · ${m.speed}× · ${m.index}/${m.total}`;
+    else if (m.kind === 'end') show({clock: 'FT', type: 'stream ended'});
+  };
+  ws.onclose = () => document.getElementById('status').textContent = 'disconnected';
+</script>
+</body>
+</html>

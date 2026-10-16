@@ -1,0 +1,7 @@
+# Real (non-synthetic) data - dev testing only, never published
+data/raw/
+
+.env
+__pycache__/
+.venv/
+.obsidian/
