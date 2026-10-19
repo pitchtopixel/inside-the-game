@@ -2,6 +2,7 @@
 Test the stats engine by replaying a match offline.
 
     python test_stats.py              synthetic match: exact checks vs raw events + generator ground truth
+    python test_stats.py --match match_002   another synthetic match
     python test_stats.py --metrica    real Metrica match: sense checks (are the numbers football-realistic?)
     add --alerts to print the full alert timeline
 """
@@ -68,8 +69,8 @@ def alert_rate(st):
     return sum(a["type"] not in FACTUAL for a in st.alerts) / (st.now / 600)
 
 
-def test_synthetic(full):
-    with open(os.path.join("data", "synthetic", "match_001.json"), encoding="utf-8") as f:
+def test_synthetic(full, match_id="match_001"):
+    with open(os.path.join("data", "synthetic", f"{match_id}.json"), encoding="utf-8") as f:
         data = json.load(f)
     st, ht, ft = replay(data)
     print_table("Half-time", ht)
@@ -167,12 +168,16 @@ def test_metrica(full):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--metrica", action="store_true")
+    ap.add_argument("--match", default="match_001", help="synthetic match id")
     ap.add_argument("--alerts", action="store_true", help="print full alert timeline")
     ap.add_argument("--log", action="store_true", help="also save output to logs/")
     args = ap.parse_args()
     if args.log:
-        start_log("test_stats_metrica" if args.metrica else "test_stats_synthetic")
-    (test_metrica if args.metrica else test_synthetic)(args.alerts)
+        start_log("test_stats_metrica" if args.metrica else f"test_stats_{args.match}")
+    if args.metrica:
+        test_metrica(args.alerts)
+    else:
+        test_synthetic(args.alerts, args.match)
     print(f"\n{sum(results)}/{len(results)} checks passed -> {'PASS' if all(results) else 'FAIL'}")
     raise SystemExit(0 if all(results) else 1)
 

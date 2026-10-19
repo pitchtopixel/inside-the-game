@@ -39,8 +39,10 @@ from stream_server import validate
 TICK_S = 0.05
 SNAPSHOT_EVERY_S = 5.0
 TIMELINE = {"profile_id": "_timeline", "mode": "analyst", "language": "en"}
-EVENT_KEYS = ("event_id", "type", "period", "clock", "elapsed_s", "team", "player_name", "x", "y", "end_x", "end_y",
-              "outcome")
+EVENT_KEYS = ("event_id", "type", "period", "clock", "elapsed_s", "team", "player_id", "player_name", "x", "y",
+              "end_x", "end_y", "outcome")
+EVENT_DETAIL_KEYS = ("subtype", "distance_m", "difficulty", "ball_speed_kmh", "xg", "shot_speed_kmh", "top_speed_kmh",
+                     "recipient_id")
 SNAP_TEAM_KEYS = ("name", "goals", "possession_pct", "shots", "shots_on_target", "xg", "big_chances", "passes",
                   "pass_accuracy_pct", "avg_pass_difficulty", "final_third_passes", "tackles_won", "interceptions",
                   "pressures", "fouls", "yellow_cards", "corners", "fastest_shot_kmh", "avg_ball_speed_kmh")
@@ -186,7 +188,8 @@ class Session:
             while self.index < len(self.events) and self.times[self.index] <= self.clock:
                 ev = self.events[self.index]
                 self.index += 1
-                await self.broadcast({"kind": "event", "event": {k: ev.get(k) for k in EVENT_KEYS}})
+                details = {k: v for k, v in (ev.get("details") or {}).items() if k in EVENT_DETAIL_KEYS}
+                await self.broadcast({"kind": "event", "event": {**{k: ev.get(k) for k in EVENT_KEYS}, "details": details}})
                 if await self.orch.process(ev):
                     alerted = True
             if alerted or self.clock - self.last_snap >= SNAPSHOT_EVERY_S:

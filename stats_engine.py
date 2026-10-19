@@ -241,7 +241,7 @@ class MatchState:
             if outcome != "goal":
                 self._alert("big_chance", "medium",
                             f"Big chance for {self.name(pid)} ({self.short[team]}) - xG {xg:.2f}, {outcome.replace('_', ' ')}",
-                            team, pid, xg=xg, outcome=outcome)
+                            team, pid, xg=xg, outcome=outcome, shot_speed_kmh=speed or None)
         if speed >= self.th["shot_record_kmh"] and speed > self.records["shot"]:
             self.records["shot"] = speed
             self._alert("shot_speed_record", "low", f"Fastest shot of the match: {self.name(pid)}, {speed:.0f} km/h",
@@ -259,7 +259,8 @@ class MatchState:
         self._alert("goal", "high",
                     f"GOAL! {self.name(pid)} scores for {self.short[team]}{tag}. "
                     f"{self.short[h]} {self.score[h]}-{self.score[a]} {self.short[a]}",
-                    team, pid, score=dict(self.score), player_goals=ps["goals"], assist_id=d.get("assist_id"))
+                    team, pid, score=dict(self.score), player_goals=ps["goals"], assist_id=d.get("assist_id"),
+                    xg=d.get("xg"), shot_speed_kmh=d.get("shot_speed_kmh"))
 
     def _on_tackle(self, ev, team, pid, d):
         won = ev.get("outcome") == "won"

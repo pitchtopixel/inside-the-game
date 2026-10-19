@@ -34,6 +34,10 @@ def explain(f):
         if goals >= 2:
             why += f" That is goal number {goals} for {player} today."
         evidence = [{"label": f"{team} xG", "value": ts["xg"]}, {"label": f"{opp} xG", "value": os_["xg"]}]
+        if d.get("xg") is not None:
+            evidence.append({"label": "Chance xG", "value": d["xg"]})
+        if d.get("shot_speed_kmh"):
+            evidence.append({"label": "Shot speed (km/h)", "value": d["shot_speed_kmh"]})
         tag = "turning_point" if "turning_point" in m.get("tags", []) else "goal"
     elif typ == "momentum":
         share = d.get("share")
@@ -48,6 +52,8 @@ def explain(f):
         why = (f"A chance worth {d.get('xg')} xG, the kind scored about {d.get('xg_pct')}% of the time. "
                f"{team} now have {ts.get('xg')} xG in total.")
         evidence = [{"label": "Chance xG", "value": d.get("xg")}, {"label": f"{team} total xG", "value": ts.get("xg")}]
+        if d.get("shot_speed_kmh"):
+            evidence.append({"label": "Shot speed (km/h)", "value": d["shot_speed_kmh"]})
         tag = "chance"
     elif typ == "rhythm" and d.get("state") == "chaos":
         headline = "The game opens up"

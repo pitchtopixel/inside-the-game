@@ -44,6 +44,9 @@ button.toggle.on { background: var(--accent); color: #04130a; border-color: var(
 .ball { fill: #fff; stroke: #000; stroke-width: .3; transition: cx .25s linear, cy .25s linear; }
 .action { stroke: rgba(255,255,255,.55); stroke-width: .5; stroke-dasharray: 1.2 .8; }
 .action.shot { stroke: var(--gold); stroke-width: .8; stroke-dasharray: none; }
+.tag { font-size: 2.4px; font-weight: 700; fill: #fff; paint-order: stroke; stroke: var(--team, #000); stroke-width: .9px;
+  transition: x .25s linear, y .25s linear; }
+.info { font-size: 2.1px; fill: var(--gold); text-anchor: middle; font-variant-numeric: tabular-nums; }
 .momentum-strip { position: absolute; left: 0; right: 0; bottom: 0; height: 5px; display: flex; }
 .momentum-strip div { height: 100%; transition: width .6s; }
 .mh { background: var(--home); width: 50%; } .ma { background: var(--away); width: 50%; }

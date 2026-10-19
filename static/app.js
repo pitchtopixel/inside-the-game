@@ -2,7 +2,7 @@
 const $ = (s, el = document) => el.querySelector(s);
 const el = (tag, cls, text) => { const e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; };
 
-let ws, meta = null, teams = {}, homeId, awayId, playing = false, matchEnd = 5800;
+let ws, meta = null, teams = {}, homeId, awayId, playing = false, matchEnd = 5800, playerNames = {};
 const panes = [];
 const timeline = new Map();
 const ICON = { goal: '⚽', big_chance: '🎯', card: '🟨', substitution: '🔁', momentum: '⚡', rhythm: '🌀',
@@ -134,14 +134,28 @@ function showRecap(pane, o) {
 function onEvent(e) {
   $('#clock').textContent = e.clock;
   if (e.x == null) return;
-  const toX = e.end_x ?? e.x, toY = e.end_y ?? e.y;
+  const toX = e.end_x ?? e.x, toY = e.end_y ?? e.y, d = e.details || {};
+  // Player tag: who is on the ball (the receiver after a completed pass, nobody after a lost one)
+  let who = playerNames[e.player_id] || e.player_name;
+  if (e.type === 'pass') who = e.outcome === 'complete' ? playerNames[d.recipient_id] : null;
+  // Quality line: shot speed + xG for everyone; pass distance / difficulty / ball speed for analysts
+  const shotInfo = e.type === 'shot' && d.shot_speed_kmh ? `Shot ${e.player_name}: ${d.shot_speed_kmh} km/h · xG ${d.xg}` : null;
+  const passInfo = e.type === 'pass' ? `${e.player_name} pass · ${d.distance_m} m · difficulty ${d.difficulty} · ${d.ball_speed_kmh} km/h${e.outcome === 'complete' ? '' : ' · lost'}` : null;
+  const sprintInfo = e.type === 'sprint' ? `${e.player_name} sprint · ${d.top_speed_kmh} km/h` : null;
   panes.forEach((p) => {
-    const ball = $('.ball', p.node), line = $('.action', p.node);
+    const ball = $('.ball', p.node), line = $('.action', p.node), tag = $('.tag', p.node), info = $('.info', p.node);
     ball.setAttribute('cx', toX); ball.setAttribute('cy', toY);
     if (e.type === 'pass' || e.type === 'shot') {
       line.setAttribute('x1', e.x); line.setAttribute('y1', e.y); line.setAttribute('x2', toX); line.setAttribute('y2', toY);
       line.classList.toggle('shot', e.type === 'shot');
     }
+    if (e.team) {
+      tag.textContent = who || '';
+      tag.style.setProperty('--team', teamColor(e.team));
+      tag.setAttribute('x', Math.min(toX + 1.6, 96)); tag.setAttribute('y', Math.max(toY - 1.8, 2.5));
+    }
+    const text = shotInfo || sprintInfo || (p.profile.mode === 'analyst' ? passInfo : null);
+    if (text) info.textContent = text;
   });
   $('#progress').style.width = Math.min(100, 100 * e.elapsed_s / matchEnd) + '%';
 }
@@ -201,6 +215,7 @@ function connect() {
       case 'meta': {
         meta = m; homeId = m.teams.home.team_id; awayId = m.teams.away.team_id;
         teams = { [homeId]: m.teams.home, [awayId]: m.teams.away };
+        playerNames = Object.fromEntries([...m.teams.home.players, ...m.teams.away.players].map((p) => [p.player_id, p.short_name]));
         $('#homeTeam b').textContent = m.teams.home.name; $('#awayTeam b').textContent = m.teams.away.name;
         $('#sHome').textContent = m.teams.home.short_name; $('#sAway').textContent = m.teams.away.short_name;
         $('#provider').textContent = `model: ${m.llm_provider === 'foundry' ? 'Microsoft Foundry' : 'offline mock'}`;

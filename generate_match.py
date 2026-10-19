@@ -1,11 +1,19 @@
 """
-Generate one synthetic, football-realistic match: metadata, rosters and a timed event stream.
-Output: data/synthetic/match_001.json and data/synthetic/match_001_events.csv
+Generate synthetic, football-realistic matches: metadata, rosters and a timed event stream.
+
+    python generate_match.py              match_001 (default)
+    python generate_match.py match_002    another match from MATCHES
+    python generate_match.py --all        every match in MATCHES
+
+Output: data/synthetic/<match_id>.json and data/synthetic/<match_id>_events.csv
+Each match searches seeds from its start seed until the result fits its storyline (see STORIES).
 
 Coordinates are absolute metres on a 105 x 68 pitch:
 home attacks towards x=105 in period 1 and towards x=0 in period 2.
 Event mix is loosely calibrated on the Metrica sample (see fetchdata.py).
 """
+
+import argparse
 
 import csv
 import json
@@ -15,20 +23,50 @@ import random
 
 from metrics import pass_difficulty, xg_model
 
-SEED = 7
-MATCH_ID = "match_001"
 OUT_DIR = os.path.join("data", "synthetic")
 L, W = 105.0, 68.0
 HALF = 2700  # seconds of regular time per period
 
-TEAMS = {
-    "home": {"team_id": "RIV", "name": "Riverside Athletic", "short_name": "Riverside",
-             "formation": "4-3-3", "colors": {"primary": "#0B3D91", "secondary": "#FFFFFF"},
-             "coach": "Marta Lindqvist", "nations": ["ENG", "ESP", "FRA", "NGA", "NED", "JPN"]},
-    "away": {"team_id": "NGR", "name": "Northgate Rovers", "short_name": "Northgate",
-             "formation": "4-2-3-1", "colors": {"primary": "#C8102E", "secondary": "#1C1C1C"},
-             "coach": "Daniel Okafor", "nations": ["ENG", "BRA", "GER", "ARG", "IND", "FRA"]},
+# Fictional clubs (no real teams, players or trademarks).
+CLUBS = {
+    "RIV": {"team_id": "RIV", "name": "Riverside Athletic", "short_name": "Riverside",
+            "formation": "4-3-3", "colors": {"primary": "#0B3D91", "secondary": "#FFFFFF"},
+            "coach": "Marta Lindqvist", "nations": ["ENG", "ESP", "FRA", "NGA", "NED", "JPN"],
+            "venue": {"name": "Riverside Park", "city": "Ashbridge", "capacity": 41250}},
+    "NGR": {"team_id": "NGR", "name": "Northgate Rovers", "short_name": "Northgate",
+            "formation": "4-2-3-1", "colors": {"primary": "#C8102E", "secondary": "#1C1C1C"},
+            "coach": "Daniel Okafor", "nations": ["ENG", "BRA", "GER", "ARG", "IND", "FRA"],
+            "venue": {"name": "Northgate Lane", "city": "Kelbrook", "capacity": 35800}},
+    "HBC": {"team_id": "HBC", "name": "Harbourside City", "short_name": "Harbourside",
+            "formation": "4-2-3-1", "colors": {"primary": "#0F766E", "secondary": "#F5F5F4"},
+            "coach": "Tomás Ibarra", "nations": ["ENG", "ARG", "NED", "JPN", "NGA", "ESP"],
+            "venue": {"name": "Harbour Stadium", "city": "Port Elden", "capacity": 33600}},
+    "EVW": {"team_id": "EVW", "name": "Eastvale Wanderers", "short_name": "Eastvale",
+            "formation": "4-3-3", "colors": {"primary": "#EA580C", "secondary": "#111827"},
+            "coach": "Grace Whitfield", "nations": ["ENG", "FRA", "GER", "BRA", "IND", "ESP"],
+            "venue": {"name": "Eastvale Common", "city": "Marlow Cross", "capacity": 29400}},
 }
+
+# Matches in the dataset: teams, start seed, storyline and match-day metadata.
+MATCHES = {
+    "match_001": {"home": "RIV", "away": "NGR", "seed": 7, "story": "open", "matchday": 9, "date": "2026-10-18",
+                  "kickoff_local": "17:30", "referee": "Paolo Venturi", "attendance": 38764,
+                  "weather": {"condition": "light rain", "temperature_c": 11, "wind_kmh": 14}},
+    "match_002": {"home": "HBC", "away": "EVW", "seed": 101, "story": "comeback", "matchday": 10,
+                  "date": "2026-10-25", "kickoff_local": "20:00", "referee": "Ingrid Solberg", "attendance": 31208,
+                  "weather": {"condition": "clear", "temperature_c": 8, "wind_kmh": 6}},
+}
+
+# Set by configure() for the match being generated.
+MATCH_ID, SEED, TEAMS = None, None, None
+
+
+def configure(match_id):
+    global MATCH_ID, SEED, TEAMS
+    cfg = MATCHES[match_id]
+    MATCH_ID, SEED = match_id, cfg["seed"]
+    TEAMS = {"home": CLUBS[cfg["home"]], "away": CLUBS[cfg["away"]]}
+    return cfg
 
 # Base positions in a team-relative frame (own goal at x=0, attacking towards x=105).
 FORMATIONS = {
@@ -62,6 +100,21 @@ NAMES = {
 }
 
 
+# Fallback fictional names once a nation's pool is used up (keeps every surname unique across the dataset).
+EXTRA_NAMES = [
+    ("ENG", "Toby", "Wainwright"), ("ENG", "Ellis", "Brayford"), ("ENG", "Kieran", "Ashdown"), ("ENG", "Rory", "Kettering"),
+    ("ESP", "Diego", "Montalbán"), ("ESP", "Sergio", "Lezcano"), ("ESP", "Marco", "Valdecasas"),
+    ("FRA", "Hugo", "Bellanger"), ("FRA", "Noé", "Castelnau"), ("FRA", "Enzo", "Vauquelin"),
+    ("BRA", "Gabriel", "Sampaio"), ("BRA", "Vitor", "Cordeiro"), ("BRA", "Enzo", "Bittencourt"),
+    ("NGA", "Kelechi", "Obiora"), ("NGA", "Femi", "Akinwale"), ("NGA", "Ikenna", "Ezeani"),
+    ("GER", "Moritz", "Lindemann"), ("GER", "Paul", "Wenzel"), ("GER", "Tim", "Kraushaar"),
+    ("NED", "Jesse", "Kuipers"), ("NED", "Thijs", "Hoogland"), ("NED", "Luuk", "Vermaat"),
+    ("IND", "Aditya", "Kulkarni"), ("IND", "Nikhil", "Pillai"), ("IND", "Dev", "Chandran"),
+    ("JPN", "Kaito", "Shimizu"), ("JPN", "Riku", "Hayashida"), ("JPN", "Daiki", "Onodera"),
+    ("ARG", "Mateo", "Quiroga"), ("ARG", "Lisandro", "Barrionuevo"), ("ARG", "Gonzalo", "Arrieta"),
+]
+
+
 def clamp(v, lo, hi):
     return max(lo, min(hi, v))
 
@@ -71,10 +124,11 @@ def other(side):
 
 
 class Sim:
-    def __init__(self, seed):
+    def __init__(self, seed, reserved_surnames=()):
         self.rng = random.Random(seed)
         self.seed = seed
         self.players, self.slots, self.bench, self.phys = {}, {}, {}, {}
+        self.used_surnames = set(reserved_surnames)  # unique across both teams and earlier matches
         for side in ("home", "away"):
             self._build_team(side)
         self.events = []
@@ -91,10 +145,11 @@ class Sim:
         cfg, rng = TEAMS[side], self.rng
         pool = [(n, f, l) for n in cfg["nations"] for f in NAMES[n][0] for l in NAMES[n][1]]
         rng.shuffle(pool)
-        used, names = set(), []
-        for nat, first, last in pool:
-            if last not in used:
-                used.add(last)
+        names = []
+        # Pool first, then the extra list (no random draws here, so the match itself is unchanged).
+        for nat, first, last in pool + [x for x in EXTRA_NAMES if x[0] in cfg["nations"]] + EXTRA_NAMES:
+            if last not in self.used_surnames and len(names) < 16:
+                self.used_surnames.add(last)
                 names.append((nat, first, last))
         numbers = iter(rng.sample([n for n in range(2, 40) if n != 13], 20))
         formation = FORMATIONS[cfg["formation"]]
@@ -496,18 +551,18 @@ class Sim:
         self.emit("physical_update", players=rows)
 
 
-def build_output(sim):
+def build_output(sim, mcfg):
     teams = {}
     for side, cfg in TEAMS.items():
-        team = {k: v for k, v in cfg.items() if k != "nations"}
+        team = {k: v for k, v in cfg.items() if k not in ("nations", "venue")}
         team["side"] = side
         team["players"] = [p for p in sim.players.values() if p["team_id"] == cfg["team_id"]]
         teams[side] = team
     match = {
         "match_id": MATCH_ID, "synthetic": True, "competition": "Synthetic Super League", "season": "2026/27",
-        "matchday": 9, "date": "2026-10-18", "kickoff_local": "17:30", "timezone": "Europe/London",
-        "venue": {"name": "Riverside Park", "city": "Ashbridge", "capacity": 41250}, "attendance": 38764,
-        "referee": "Paolo Venturi", "weather": {"condition": "light rain", "temperature_c": 11, "wind_kmh": 14},
+        "matchday": mcfg["matchday"], "date": mcfg["date"], "kickoff_local": mcfg["kickoff_local"],
+        "timezone": "Europe/London", "venue": TEAMS["home"]["venue"], "attendance": mcfg["attendance"],
+        "referee": mcfg["referee"], "weather": mcfg["weather"],
         "pitch": {"length_m": L, "width_m": W,
                   "coordinates": "absolute metres; home attacks towards x=105 in period 1 and towards x=0 in period 2"},
         "periods": [{"period": p, "duration_s": sim.period_len[p], "added_time_min": sim.stoppage[p]} for p in (1, 2)],
@@ -528,18 +583,53 @@ def write_csv(events, path):
             w.writerow([ev[c] for c in cols] + [json.dumps(ev["details"], ensure_ascii=False)])
 
 
-def main():
-    # Pick the first seed that gives a watchable result (both teams score, 3-5 goals).
-    for seed in range(SEED, SEED + 200):
-        sim = Sim(seed)
+def _goal_teams(sim):
+    return [e["team"] for e in sim.events if e["type"] == "goal"]
+
+
+def _max_goals_by_one_player(sim):
+    scorers = [e["player_id"] for e in sim.events if e["type"] == "goal"]
+    return max((scorers.count(p) for p in scorers), default=0)
+
+
+def _earlier_surnames(match_id):
+    """Surnames already used by matches generated before this one (dataset-wide uniqueness)."""
+    used = set()
+    for mid in sorted(MATCHES):
+        path = os.path.join(OUT_DIR, f"{mid}.json")
+        if mid >= match_id or not os.path.exists(path):
+            continue
+        with open(path, encoding="utf-8") as f:
+            for team in json.load(f)["teams"].values():
+                used.update(p["short_name"] for p in team["players"])
+    return used
+
+
+STORIES = {
+    # both teams score, 3-5 goals
+    "open": lambda sim: min(sim.score.values()) >= 1 and 3 <= sum(sim.score.values()) <= 5,
+    # the team that concedes first wins, at most 6 goals, goals shared around (no hat-trick)
+    "comeback": lambda sim: (len(_goal_teams(sim)) >= 3 and sum(sim.score.values()) <= 6
+                             and _max_goals_by_one_player(sim) <= 2
+                             and max(sim.score, key=sim.score.get) != next(
+                                 s for s in sim.score if TEAMS[s]["team_id"] == _goal_teams(sim)[0])
+                             and len(set(sim.score.values())) == 2),
+}
+
+
+def generate(match_id):
+    mcfg = configure(match_id)
+    reserved = _earlier_surnames(match_id)
+    for seed in range(SEED, SEED + 500):  # first seed whose result fits the storyline
+        sim = Sim(seed, reserved)
         sim.run()
-        if min(sim.score.values()) >= 1 and 3 <= sum(sim.score.values()) <= 5:
+        if STORIES[mcfg["story"]](sim):
             break
 
     os.makedirs(OUT_DIR, exist_ok=True)
     json_path = os.path.join(OUT_DIR, f"{MATCH_ID}.json")
     with open(json_path, "w", encoding="utf-8") as f:
-        json.dump(build_output(sim), f, ensure_ascii=False, indent=1)
+        json.dump(build_output(sim, mcfg), f, ensure_ascii=False, indent=1)
     write_csv(sim.events, os.path.join(OUT_DIR, f"{MATCH_ID}_events.csv"))
 
     counts = {}
@@ -553,7 +643,18 @@ def main():
         shots = [e for e in sim.events if e["type"] == "shot" and e["team"] == tid]
         acc = sum(e["outcome"] == "complete" for e in passes) / max(len(passes), 1)
         print(f"{tid}: passes {len(passes)} ({acc:.0%})  shots {len(shots)}  xG {sum(e['details']['xg'] for e in shots):.2f}")
+    print(f"goals: {[(e['clock'], e['team'], e['player_name']) for e in sim.events if e['type'] == 'goal']}")
     print(f"saved: {json_path}")
+
+
+def main():
+    ap = argparse.ArgumentParser()
+    ap.add_argument("match_id", nargs="?", default="match_001", choices=sorted(MATCHES))
+    ap.add_argument("--all", action="store_true", help="generate every match in MATCHES")
+    args = ap.parse_args()
+    for match_id in (sorted(MATCHES) if args.all else [args.match_id]):
+        print(f"\n== {match_id} ==")
+        generate(match_id)
 
 
 if __name__ == "__main__":

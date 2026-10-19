@@ -3,7 +3,7 @@ Test the multi-agent pipeline end to end (mock model by default - no Azure cost)
 
     python test_agents.py                 full match, 3 viewer profiles, + failure-mode runs
     python test_agents.py --foundry       same checks against the real Foundry model (costs a few cents)
-    add --log to save output to logs/, --show to print sample overlays
+    add --match match_002 for another match, --log to save output to logs/, --show to print sample overlays
 """
 
 import argparse
@@ -18,12 +18,7 @@ from orchestrator import Orchestrator
 from testlog import start_log
 
 sys.stdout.reconfigure(encoding="utf-8")
-MATCH = os.path.join("data", "synthetic", "match_001.json")
-PROFILES = [
-    {"profile_id": "analyst_en", "mode": "analyst", "language": "en"},
-    {"profile_id": "fan_es_ngr", "mode": "fan", "language": "es", "club": "NGR", "metric": "possession"},
-    {"profile_id": "focus_arribas", "mode": "fan", "language": "en", "player": "RIV27", "metric": "xg"},
-]
+PROFILES, CLUB, FOCUS = [], None, None   # set per match by setup_profiles()
 OVERLAY_KEYS = {"overlay_id", "version", "kind", "source", "profile_id", "clock", "elapsed_s", "period",
                 "headline", "text", "display"}
 results = []
@@ -34,9 +29,22 @@ def check(name, ok, detail=""):
     print(f"  [{'PASS' if ok else 'FAIL'}] {name}  {detail}")
 
 
-def load():
-    with open(MATCH, encoding="utf-8") as f:
+def load(match_id):
+    with open(os.path.join("data", "synthetic", f"{match_id}.json"), encoding="utf-8") as f:
         return json.load(f)
+
+
+def setup_profiles(data):
+    """Analyst; Spanish fan of the away club; player focus on the match's top scorer."""
+    global PROFILES, CLUB, FOCUS
+    CLUB = data["teams"]["away"]["team_id"]
+    scorers = Counter(e["player_id"] for e in data["events"] if e["type"] == "goal")
+    FOCUS = scorers.most_common(1)[0][0]
+    PROFILES = [
+        {"profile_id": "analyst_en", "mode": "analyst", "language": "en"},
+        {"profile_id": "fan_es_club", "mode": "fan", "language": "es", "club": CLUB, "metric": "possession"},
+        {"profile_id": "focus_player", "mode": "fan", "language": "en", "player": FOCUS, "metric": "xg"},
+    ]
 
 
 async def run_match(data, client, events=None, timeout_s=8.0):
@@ -64,8 +72,8 @@ async def main_run(data, client, show):
     moments = [m for m in orch.mc.moments.key_moments]
     explainable = {o["moment_id"] for o in orch.outputs if o["kind"] == "moment" and o["importance"] >= 45}
     analyst = latest(orch, "analyst_en")
-    fan = latest(orch, "fan_es_ngr")
-    focus = latest(orch, "focus_arribas")
+    fan = latest(orch, "fan_es_club")
+    focus = latest(orch, "focus_player")
 
     print("\n== Checks: pipeline ==")
     alerts = len(orch.mc.state.alerts)
@@ -95,15 +103,16 @@ async def main_run(data, client, show):
     es = [o for o in fan_moments if o["version"] == 2]
     check("9. Spanish viewer gets Spanish (v2) overlays", es and all(o["language"] == "es" for o in es),
           f"{len(es)} overlays")
-    wrong = [o for o in fan_moments if o["highlight"]["your_club"] != (o["team"] == "NGR")]
+    wrong = [o for o in fan_moments if o["highlight"]["your_club"] != (o["team"] == CLUB)]
     check("10. favourite-club highlight correct", not wrong, f"{sum(o['highlight']['your_club'] for o in fan_moments)} highlighted")
-    arribas = {o["moment_id"] for o in analyst_moments if o.get("player_id") == "RIV27"}
+    focus_moments = {o["moment_id"] for o in analyst_moments if o.get("player_id") == FOCUS}
     seen = {o["moment_id"] for o in focus if o["kind"] == "moment"}
     trackers = [o for o in focus if o["kind"] == "player_tracker"]
-    check("11. player focus: all of Arribas's moments + tracker every 5 min", arribas <= seen and len(trackers) >= 18,
-          f"{len(arribas & seen)}/{len(arribas)} moments, {len(trackers)} trackers")
+    check(f"11. player focus ({FOCUS}): all their moments + tracker every 5 min",
+          focus_moments <= seen and len(trackers) >= 18,
+          f"{len(focus_moments & seen)}/{len(focus_moments)} moments, {len(trackers)} trackers")
     tickers = Counter(o["profile_id"] for o in orch.outputs if o["kind"] == "metric_ticker")
-    check("12. single-metric ticker for metric viewers", tickers.get("fan_es_ngr", 0) >= 18 and tickers.get("focus_arribas", 0) >= 18
+    check("12. single-metric ticker for metric viewers", tickers.get("fan_es_club", 0) >= 18 and tickers.get("focus_player", 0) >= 18
           and "analyst_en" not in tickers, str(dict(tickers)))
 
     print("\n== Checks: ingest ==")
@@ -138,7 +147,9 @@ async def failure_runs(data):
 
 
 async def amain(args):
-    data = load()
+    data = load(args.match)
+    setup_profiles(data)
+    print(f"match {args.match}: {data['match']['final_score']}, club {CLUB}, player focus {FOCUS}")
     client = get_chat_client("foundry") if args.foundry else MockChatClient()
     await main_run(data, client, args.show)
     if not args.foundry:
@@ -149,12 +160,13 @@ async def amain(args):
 
 def main():
     ap = argparse.ArgumentParser()
+    ap.add_argument("--match", default="match_001")
     ap.add_argument("--foundry", action="store_true", help="use the real Foundry model")
     ap.add_argument("--show", action="store_true", help="print sample overlays")
     ap.add_argument("--log", action="store_true", help="also save output to logs/")
     args = ap.parse_args()
     if args.log:
-        start_log("test_agents_foundry" if args.foundry else "test_agents_mock")
+        start_log(f"test_agents_{'foundry' if args.foundry else 'mock'}_{args.match}")
     raise SystemExit(0 if asyncio.run(amain(args)) else 1)
 
 

@@ -23,7 +23,7 @@ sys.stdout.reconfigure(encoding="utf-8")
 PORT = 8601
 URL = f"ws://127.0.0.1:{PORT}/ws"
 ANALYST = {"mode": "analyst", "language": "en"}
-FAN = {"mode": "fan", "language": "es", "club": "NGR", "metric": "possession"}
+FAN = {"mode": "fan", "language": "es", "club": None, "metric": "possession"}  # club = away team, set in main()
 results = []
 
 
@@ -80,10 +80,17 @@ def overlays(box):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--log", action="store_true")
-    if ap.parse_args().log:
-        start_log("test_app")
+    ap.add_argument("--match", default="match_001")
+    args = ap.parse_args()
+    if args.log:
+        start_log(f"test_app_{args.match}")
+    path = os.path.join("data", "synthetic", f"{args.match}.json")
+    with open(path, encoding="utf-8") as f:
+        data = json.load(f)
+    FAN["club"] = data["teams"]["away"]["team_id"]
     env = {**os.environ, "LLM_PROVIDER": "mock"}
-    server = subprocess.Popen([sys.executable, "app.py", "--port", str(PORT), "--mock-latency", "0"], env=env)
+    server = subprocess.Popen([sys.executable, "app.py", "--port", str(PORT), "--mock-latency", "0", "--match", path],
+                              env=env)
     try:
         for _ in range(60):
             try:
@@ -95,7 +102,7 @@ def main():
     finally:
         server.terminate()
 
-    total = json.load(open(os.path.join("data", "synthetic", "match_001.json"), encoding="utf-8"))["events"]
+    total = data["events"]
     kinds_a = Counter(m["kind"] for m in a)
     oa, of = overlays(a), overlays(f)
     pid_a = {o["profile_id"] for o in oa}

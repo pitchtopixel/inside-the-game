@@ -16,12 +16,19 @@ pip install -r requirements.txt
 
 ## 1. Synthetic Data — `generate_match.py`
 ```powershell
-python generate_match.py
+python generate_match.py --all                # every match in MATCHES (generate in this order: names stay unique)
+python generate_match.py match_002            # one match
 ```
-**Expect:** seed, score, event counts, pass accuracy / shots / xG per team.
-**Output:** `data/synthetic/match_001.json`, `data/synthetic/match_001_events.csv`
+**Expect:** per match: seed, score, event counts, pass accuracy / shots / xG per team, goal list.
+**Output:** `data/synthetic/<match_id>.json` and `<match_id>_events.csv`
 
-**Last result (16 Oct):** RIV 4–1 NGR (Arribas 4 goals: 2', 17', 35', 56' · Brandt 88') · 2,080 events · RIV 539 passes (78%), 21 shots, xG 3.50 · NGR 455 passes (73%), 10 shots, xG 0.78
+Matches are defined in `MATCHES` (teams, start seed, storyline, match-day metadata); clubs in `CLUBS` (all fictional).
+Each match takes the first seed whose result fits its storyline (`STORIES`). Player surnames are unique across the dataset.
+
+**Last result (19 Oct):**
+- `match_001` (story *open*): Riverside 4–1 Northgate — Arribas 2', 17', 35', 56' · Sosa 88' · 2,080 events
+- `match_002` (story *comeback*): Harbourside 1–4 Eastvale — Balogun 2' · Bittencourt 28', 45+2' · Sampaio 78' · Cordeiro 89' · 1,980 events
+- 64 players, 64 unique surnames
 
 ### Optional: Metrica sample (real data, dev testing only — never published)
 ```powershell
@@ -48,7 +55,8 @@ Note: `--check` restarts the stream and sets speed to 600× for every connected 
 
 ## 3. Stats Engine — `stats_engine.py`
 ```powershell
-python test_stats.py --log                    # synthetic match: exact checks
+python test_stats.py --log                    # synthetic match_001: exact checks
+python test_stats.py --match match_002 --log  # another synthetic match
 python test_stats.py --alerts --log           # + full alert timeline
 python test_stats.py --metrica --log          # real Metrica match: sense checks (needs fetchdata.py first)
 ```
@@ -75,9 +83,10 @@ python test_stats.py --metrica --log          # real Metrica match: sense checks
 12. Score matches source
 13. No rejected events
 
-**Last result (16 Oct):**
-- Synthetic: 12/12 PASS — 4/4 spells detected, 2.0 insight alerts / 10 min · log: `logs/test_stats_synthetic_2026-10-16_2316.txt`
-- Metrica: 11/11 PASS — possession 56/44, pass acc 77%/74%, avg pass 17.6 m, ball speed ~46 km/h, difficulty 0.26/0.25, 6 swings · log: `logs/test_stats_metrica_2026-10-16_2316.txt`
+**Last result (19 Oct):**
+- match_001: 12/12 PASS — 4/4 spells detected, 2.0 insight alerts / 10 min · log: `logs/test_stats_match_001_2026-10-19_2113.txt`
+- match_002: 12/12 PASS — 3/4 spells detected, 2.1 insight alerts / 10 min · log: `logs/test_stats_match_002_2026-10-19_2114.txt`
+- Metrica: 11/11 PASS — possession 56/44, pass acc 77%/74%, avg pass 17.6 m, ball speed ~46 km/h, difficulty 0.26/0.25, 6 swings · log: `logs/test_stats_metrica_2026-10-19_2114.txt`
 
 **Tuning:** all thresholds in `THRESHOLDS` at the top of `stats_engine.py` (documented in docs/metrics.md).
 
@@ -85,6 +94,7 @@ python test_stats.py --metrica --log          # real Metrica match: sense checks
 Architecture: [docs/agents.md](docs/agents.md). Model: `LLM_PROVIDER` in `.env` (copy `.env.example`); default `mock` = offline, free.
 ```powershell
 python test_agents.py --log                   # mock model: full match, 3 viewer profiles, + failure modes
+python test_agents.py --match match_002 --log # another match (profiles: away-club fan, top scorer focus)
 python test_agents.py --show                  # + print sample overlays
 python test_agents.py --foundry --log         # real Foundry model (needs .env + az login; a few cents)
 ```
@@ -106,13 +116,17 @@ python test_agents.py --foundry --log         # real Foundry model (needs .env +
 13. Ingest agent rejects a duplicate event
 14–17. Model fails / returns bad JSON / hallucinates numbers / is too slow → template fallback, nothing lost
 
-**Last result (19 Oct, mock):** 17/17 PASS — 74 LLM calls, 0 fallbacks, instant p95 ~6 ms, 168 overlays, full match in ~1 s · log: `logs/test_agents_mock_2026-10-19_2009.txt`
+**Last result (19 Oct, mock):**
+- match_001: 17/17 PASS — 74 LLM calls, 0 fallbacks, instant p95 ~6 ms, full match in ~1 s · log: `logs/test_agents_mock_match_001_2026-10-19_2113.txt`
+- match_002: 17/17 PASS · log: `logs/test_agents_mock_match_002_2026-10-19_2114.txt`
 
 ## 5. App (UI) — `app.py` + `static/`
 ```powershell
 python app.py                                 # then open http://localhost:8600 and press Play
 python app.py --speed 20 --autoplay           # start playing immediately
+python app.py --match data/synthetic/match_002.json   # another match
 ```
+- Pitch: name tag on the player with the ball; shot speed + xG on every shot and sprint speeds for all viewers; pass distance / difficulty / ball speed for analysts
 - **Compare viewers** button (or open http://localhost:8600/?compare) → Analyst vs Fan side by side
 - Each pane: preset or custom viewer (mode, language, favourite club, player focus, metric)
 - Click the timeline or a key-moment chip to jump; badges show **AI · grounded**, **LIVE** (template) or **AUTO** (fallback)
@@ -122,6 +136,7 @@ python app.py --speed 20 --autoplay           # start playing immediately
 **Automated test** (starts its own server on port 8601):
 ```powershell
 python test_app.py --log
+python test_app.py --match match_002 --log
 ```
 **Expect:** `10/10 checks passed -> PASS`
 
@@ -137,4 +152,6 @@ python test_app.py --log
 9. Timeline items stream to viewers
 10. Seek to 60' rebuilds state and timeline
 
-**Last result (19 Oct, mock):** 10/10 PASS — 2080/2080 events, 23 overlays upgraded, fan 15 vs analyst 34 moments · log: `logs/test_app_2026-10-19_2058.txt` · screenshot: `docs/img/ui_compare.png`
+**Last result (19 Oct, mock):**
+- match_001: 10/10 PASS · log: `logs/test_app_match_001_2026-10-19_2113.txt` · screenshot: `docs/img/ui_compare.png`
+- match_002: 10/10 PASS · log: `logs/test_app_match_002_2026-10-19_2114.txt` · screenshot: `docs/img/ui_match002_pitch.png`
