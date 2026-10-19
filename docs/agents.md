@@ -35,11 +35,18 @@ the explained, personalized version replaces it (same `overlay_id`, `version` 2)
 1. **Fact sheet only** — the model receives the computed stats for that moment, nothing else.
 2. **Timeout + 1 retry.**
 3. **JSON validation** — required keys present.
-4. **Grounding check** — every number in the answer must exist in the fact sheet (normal rounding allowed); otherwise rejected.
+4. **Hallucination (grounding) checks** — the answer is rejected if it contains:
+   - a **number** not in the fact sheet (normal rounding allowed),
+   - a **name** (capitalised word mid-sentence) not in the fact sheet — e.g. an invented scorer or competition,
+   - an **out-of-scope claim** about things we have no data on (season, career, injury, transfer, crowd, history…).
+
+   Words beyond these are not machine-checked; prompts forbid invented facts, and an AI groundedness
+   evaluator (Microsoft Foundry) is planned for the top moments.
 5. **Template fallback** — on any failure the overlay is built from templates; `source: "fallback"` and `fallback_reason` record why.
 6. **Metrics** — LLM calls per agent, fallbacks by reason, latency; shown in tests.
 
-Tested failure modes (mock model): unavailable, malformed JSON, hallucinated numbers, too slow → all degrade to template overlays, none lost.
+Tested failure modes (mock model): unavailable, malformed JSON, invented numbers, invented names,
+out-of-scope claims, too slow → all degrade to template overlays, none lost, no invented text on screen.
 
 ## Cost control
 - Only moments with importance ≥ 45 are explained (~23 per match); low-priority alerts stay template-only.

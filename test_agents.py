@@ -132,14 +132,16 @@ async def failure_runs(data):
     print("\n== Checks: failure recovery (first half, mock failure modes) ==")
     first_half = [e for e in data["events"] if e["period"] == 1]
     for n, (mode, expect) in enumerate([("fail", "error"), ("bad_json", "bad_json"),
-                                        ("hallucinate", "ungrounded"), ("slow", "timeout")], start=14):
+                                        ("hallucinate", "ungrounded"), ("wrong_name", "unknown_name"),
+                                        ("off_topic", "out_of_scope"), ("slow", "timeout")], start=14):
         orch = await run_match(data, MockChatClient(mode=mode), first_half, timeout_s=0.05)
         s = orch.summary()
         moments = [o for o in latest(orch, "analyst_en") if o["kind"] == "moment"]
         v2 = [o for o in moments if o["version"] == 2]
         explainable = [o for o in moments if o["importance"] >= 45]
         reasons = {k.split(":")[1] for k in s["fallbacks"]}
-        leaked = [o for o in orch.outputs if "47th" in json.dumps(o) or "99,999" in json.dumps(o)]
+        leaked = [o for o in orch.outputs
+                  if any(s in json.dumps(o, ensure_ascii=False) for s in ("47th", "99,999", "Vargas", "season"))]
         ok = (s["workflow_errors"] == 0 and len(v2) == len(explainable) and all(o["source"] == "fallback" for o in v2)
               and reasons == {expect} and not leaked)
         check(f"{n}. model '{mode}' -> template fallback, nothing lost", ok,

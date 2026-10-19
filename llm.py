@@ -5,7 +5,8 @@ LLM_PROVIDER=foundry  -> Microsoft Foundry (FOUNDRY_PROJECT_ENDPOINT, FOUNDRY_MO
 LLM_PROVIDER=mock     -> deterministic offline model for development and tests (default; no cost)
 
 The mock answers the same JSON tasks as the real model, using only the facts it is given, and can
-simulate failures (MOCK_MODE=fail|slow|bad_json|hallucinate) to exercise the agents' fallbacks.
+simulate failures (MOCK_MODE=fail|slow|bad_json|hallucinate|wrong_name|off_topic) to exercise the
+agents' fallbacks.
 """
 
 import asyncio
@@ -57,10 +58,13 @@ class MockChatClient(BaseChatClient):
             return self._reply("Sure! Here is my answer: the match is exciting.")
         payload = json.loads(prompt)
         out = MOCK_TASKS[payload["task"]](payload)
-        if self.mode == "hallucinate":
+        extra = {"hallucinate": " This is their 47th straight win at a ground holding 99,999 fans.",
+                 "wrong_name": " Lionel Vargas set it up from the left.",
+                 "off_topic": " It caps the best season of his career."}.get(self.mode)
+        if extra:
             for key in ("why", "line", "summary"):
                 if key in out:
-                    out[key] += " This is their 47th straight win at a ground holding 99,999 fans."
+                    out[key] += extra
         return self._reply(json.dumps(out, ensure_ascii=False))
 
     @staticmethod

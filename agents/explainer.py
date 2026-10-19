@@ -11,6 +11,8 @@ Explain WHY it matters - scoreline context, control vs chaos, pressure, momentum
 
 Rules:
 - Use ONLY numbers that appear in "facts". Never invent statistics, history, records or names.
+- Mention only players and teams named in "facts". We have no data on seasons, careers, injuries,
+  transfers, crowds or past matches - never mention them.
 - headline: at most 8 words. why: at most 2 short sentences.
 - evidence: 1-3 items {"label": str, "value": number or str}, values copied from facts.
 - tag: one of goal, turning_point, chance, pressure, control, chaos, milestone, discipline, change.

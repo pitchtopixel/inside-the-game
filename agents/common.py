@@ -104,6 +104,65 @@ def ungrounded_numbers(output, facts):
     return bad
 
 
+def _texts(obj, out):
+    """All strings in a nested structure, dict keys included (team names are keys in the fact sheet)."""
+    if isinstance(obj, str):
+        out.append(obj)
+    elif isinstance(obj, dict):
+        for k, v in obj.items():
+            _texts(k, out)
+            _texts(v, out)
+    elif isinstance(obj, (list, tuple)):
+        for v in obj:
+            _texts(v, out)
+    return out
+
+
+WORD = re.compile(r"[\wÀ-ÿ'’-]+")
+CAPITALISED = re.compile(r"(?<![\w'’-])[A-ZÀ-ÖØ-Þ][a-zà-öø-ÿ'’-]*[a-zà-öø-ÿ]")  # whole word, e.g. "Vargas"
+SENTENCE_START = re.compile(r"(^|[.!?¡¿:;\-–—\]\"“(])\s*$")
+NAME_ALLOW = {"xG"}
+
+
+def unknown_names(output, facts):
+    """
+    Capitalised words mid-sentence (names of players, teams, places, competitions) that do not
+    appear in the facts - e.g. an invented scorer or "Premier League".
+    """
+    known = {w.lower() for s in _texts(facts, []) for w in WORD.findall(s)}
+    bad = []
+    for s in _texts(output, []):
+        for m in CAPITALISED.finditer(s):
+            if SENTENCE_START.search(s[:m.start()]):
+                continue  # first word of a sentence is capitalised anyway
+            if m.group(0).lower() not in known and m.group(0) not in NAME_ALLOW:
+                bad.append(m.group(0))
+    return sorted(set(bad))
+
+
+# Topics we have no data for: any mention is an invented claim unless the facts contain it.
+OUT_OF_SCOPE = re.compile(
+    r"\b(seasons?|career|campaign|last week|history|historic|all-time|injur\w*|transfers?|contract|league table|"
+    r"title race|unbeaten|previous match|last match|last game|crowd|attendance|derby|trophy|trophies)\b", re.I)
+
+
+def out_of_scope_claims(output, facts):
+    fact_text = " ".join(_texts(facts, [])).lower()
+    found = {m.group(0).lower() for s in _texts(output, []) for m in OUT_OF_SCOPE.finditer(s)}
+    return sorted(t for t in found if t not in fact_text)
+
+
+def grounding_problem(output, facts):
+    """None if the output is grounded in the facts, else the reason it is not."""
+    if ungrounded_numbers(output, facts):
+        return "ungrounded"
+    if unknown_names(output, facts):
+        return "unknown_name"
+    if out_of_scope_claims(output, facts):
+        return "out_of_scope"
+    return None
+
+
 # ---------- safe LLM call ----------
 def parse_json(text):
     text = text.strip()
@@ -136,9 +195,9 @@ async def call_agent(agent, payload, required, facts, metrics, timeout_s, retrie
             if missing:
                 reason = "missing_keys"
                 continue
-            bad = ungrounded_numbers({k: data[k] for k in required}, facts)
-            if bad:
-                reason = "ungrounded"
+            problem = grounding_problem({k: data[k] for k in required}, facts)
+            if problem:
+                reason = problem
                 continue
             return data, None
         except asyncio.TimeoutError:
