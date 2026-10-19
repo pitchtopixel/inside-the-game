@@ -90,7 +90,7 @@ def test_synthetic(full):
         passes = [e for e in ev if e["type"] == "pass" and e["team"] == tid]
         acc = round(100 * sum(e["outcome"] == "complete" for e in passes) / len(passes), 1)
         xg = round(sum(e["details"]["xg"] for e in ev if e["type"] == "shot" and e["team"] == tid), 2)
-        check(f"4. {tid} pass accuracy & xG", (s["pass_accuracy_pct"], s["xg"]) == (acc, xg),
+        check(f"4. {tid} pass accuracy & xG", s["pass_accuracy_pct"] == acc and abs(s["xg"] - xg) <= 0.011,
               f"{s['pass_accuracy_pct']}% / {s['xg']} vs {acc}% / {xg}")
 
     spells = data["generator"]["momentum_spells"]

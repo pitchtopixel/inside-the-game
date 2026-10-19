@@ -1,4 +1,8 @@
-pandas
-fastapi
-uvicorn[standard]
-websockets
+pandas==3.0.6
+fastapi==0.148.0
+uvicorn[standard]==0.54.0
+websockets==17.2
+agent-framework-core==1.22.0
+agent-framework-foundry==1.15.0
+azure-identity==1.26.0
+python-dotenv==1.2.4

@@ -7,8 +7,10 @@ Run all commands from the project root.
 **Docs:** metric formulas → [docs/metrics.md](docs/metrics.md) · data formats → [docs/schemas.md](docs/schemas.md)
 
 ## 0. Setup
+Project has its own virtual environment (`.venv`, Python 3.13, git-ignored):
 ```powershell
-C:\Users\jayak\cv_env\.venv\Scripts\Activate.ps1
+python -m venv .venv                          # first time only
+.\.venv\Scripts\Activate.ps1
 pip install -r requirements.txt
 ```
 
