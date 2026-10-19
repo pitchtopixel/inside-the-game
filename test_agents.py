@@ -1,0 +1,162 @@
+"""
+Test the multi-agent pipeline end to end (mock model by default - no Azure cost).
+
+    python test_agents.py                 full match, 3 viewer profiles, + failure-mode runs
+    python test_agents.py --foundry       same checks against the real Foundry model (costs a few cents)
+    add --log to save output to logs/, --show to print sample overlays
+"""
+
+import argparse
+import asyncio
+import json
+import os
+import sys
+from collections import Counter
+
+from llm import MockChatClient, get_chat_client
+from orchestrator import Orchestrator
+from testlog import start_log
+
+sys.stdout.reconfigure(encoding="utf-8")
+MATCH = os.path.join("data", "synthetic", "match_001.json")
+PROFILES = [
+    {"profile_id": "analyst_en", "mode": "analyst", "language": "en"},
+    {"profile_id": "fan_es_ngr", "mode": "fan", "language": "es", "club": "NGR", "metric": "possession"},
+    {"profile_id": "focus_arribas", "mode": "fan", "language": "en", "player": "RIV27", "metric": "xg"},
+]
+OVERLAY_KEYS = {"overlay_id", "version", "kind", "source", "profile_id", "clock", "elapsed_s", "period",
+                "headline", "text", "display"}
+results = []
+
+
+def check(name, ok, detail=""):
+    results.append(ok)
+    print(f"  [{'PASS' if ok else 'FAIL'}] {name}  {detail}")
+
+
+def load():
+    with open(MATCH, encoding="utf-8") as f:
+        return json.load(f)
+
+
+async def run_match(data, client, events=None, timeout_s=8.0):
+    orch = Orchestrator({"match": data["match"], "teams": data["teams"]}, PROFILES, client=client, timeout_s=timeout_s)
+    for ev in events or data["events"]:
+        await orch.process(ev)
+    await orch.drain()
+    return orch
+
+
+def latest(orch, profile_id):
+    """Final version of each overlay a viewer ends up seeing."""
+    best = {}
+    for o in orch.outputs:
+        if o["profile_id"] == profile_id and o["version"] >= best.get(o["overlay_id"], {}).get("version", 0):
+            best[o["overlay_id"]] = o
+    return list(best.values())
+
+
+async def main_run(data, client, show):
+    orch = await run_match(data, client)
+    s = orch.summary()
+    print(f"\n== Full match ({'mock' if isinstance(client, MockChatClient) else 'foundry'}) ==")
+    print(json.dumps(s))
+    moments = [m for m in orch.mc.moments.key_moments]
+    explainable = {o["moment_id"] for o in orch.outputs if o["kind"] == "moment" and o["importance"] >= 45}
+    analyst = latest(orch, "analyst_en")
+    fan = latest(orch, "fan_es_ngr")
+    focus = latest(orch, "focus_arribas")
+
+    print("\n== Checks: pipeline ==")
+    alerts = len(orch.mc.state.alerts)
+    analyst_moments = [o for o in analyst if o["kind"] == "moment"]
+    check("1. every alert became a moment the analyst sees", len(analyst_moments) == alerts,
+          f"{len(analyst_moments)}/{alerts}")
+    enriched = {o["moment_id"] for o in analyst_moments if o["version"] == 2}
+    check("2. every important moment got an explanation (v2)", explainable <= enriched,
+          f"{len(enriched & explainable)}/{len(explainable)}")
+    llm_share = sum(o["source"] == "llm" for o in analyst_moments if o["version"] == 2) / max(len(enriched), 1)
+    check("3. explanations come from the LLM agents (no fallbacks)", not s["fallbacks"] and llm_share == 1.0,
+          f"llm {llm_share:.0%}, fallbacks {s['fallbacks']}")
+    check("4. instant overlays p95 < 50 ms", s["instant_latency_p95_ms"] < 50, f"{s['instant_latency_p95_ms']} ms")
+    recaps = Counter(o["recap_type"] for o in orch.outputs if o["kind"] == "recap")
+    check("5. half-time and full-time recaps for every viewer",
+          recaps == {"half_time": len(PROFILES), "full_time": len(PROFILES)}, str(dict(recaps)))
+    missing = [o["overlay_id"] for o in orch.outputs if not OVERLAY_KEYS <= o.keys()]
+    check("6. every overlay matches the schema", not missing, f"{len(orch.outputs)} overlays, {len(missing)} bad")
+    calls = sum(s["llm_calls"].values())
+    check("7. LLM cost bounded (< 150 calls per match)", calls < 150, f"{calls} calls")
+
+    print("\n== Checks: personalization ==")
+    fan_moments = [o for o in fan if o["kind"] == "moment"]
+    low = [o for o in fan_moments if o["importance"] < 60 and o["alert_type"] != "goal"]
+    check("8. fan sees fewer, bigger moments than analyst", len(fan_moments) < len(analyst_moments) and not low,
+          f"fan {len(fan_moments)} vs analyst {len(analyst_moments)}, low-importance shown {len(low)}")
+    es = [o for o in fan_moments if o["version"] == 2]
+    check("9. Spanish viewer gets Spanish (v2) overlays", es and all(o["language"] == "es" for o in es),
+          f"{len(es)} overlays")
+    wrong = [o for o in fan_moments if o["highlight"]["your_club"] != (o["team"] == "NGR")]
+    check("10. favourite-club highlight correct", not wrong, f"{sum(o['highlight']['your_club'] for o in fan_moments)} highlighted")
+    arribas = {o["moment_id"] for o in analyst_moments if o.get("player_id") == "RIV27"}
+    seen = {o["moment_id"] for o in focus if o["kind"] == "moment"}
+    trackers = [o for o in focus if o["kind"] == "player_tracker"]
+    check("11. player focus: all of Arribas's moments + tracker every 5 min", arribas <= seen and len(trackers) >= 18,
+          f"{len(arribas & seen)}/{len(arribas)} moments, {len(trackers)} trackers")
+    tickers = Counter(o["profile_id"] for o in orch.outputs if o["kind"] == "metric_ticker")
+    check("12. single-metric ticker for metric viewers", tickers.get("fan_es_ngr", 0) >= 18 and tickers.get("focus_arribas", 0) >= 18
+          and "analyst_en" not in tickers, str(dict(tickers)))
+
+    print("\n== Checks: ingest ==")
+    dup = await orch.process(data["events"][100])
+    check("13. ingest agent rejects a replayed (duplicate) event", dup == [] and orch.mc.rejected == 1, f"rejected {orch.mc.rejected}")
+
+    if show:
+        for o in [o for o in analyst_moments if o["alert_type"] == "goal"][:1] + \
+                 [o for o in fan_moments if o["version"] == 2][:1] + trackers[:1] + \
+                 [o for o in analyst if o["kind"] == "recap"][:1]:
+            print("\n" + json.dumps(o, ensure_ascii=False, indent=1)[:1500])
+    return orch
+
+
+async def failure_runs(data):
+    """Each failure mode must degrade to template overlays - never crash, never lose an overlay."""
+    print("\n== Checks: failure recovery (first half, mock failure modes) ==")
+    first_half = [e for e in data["events"] if e["period"] == 1]
+    for n, (mode, expect) in enumerate([("fail", "error"), ("bad_json", "bad_json"),
+                                        ("hallucinate", "ungrounded"), ("slow", "timeout")], start=14):
+        orch = await run_match(data, MockChatClient(mode=mode), first_half, timeout_s=0.05)
+        s = orch.summary()
+        moments = [o for o in latest(orch, "analyst_en") if o["kind"] == "moment"]
+        v2 = [o for o in moments if o["version"] == 2]
+        explainable = [o for o in moments if o["importance"] >= 45]
+        reasons = {k.split(":")[1] for k in s["fallbacks"]}
+        leaked = [o for o in orch.outputs if "47th" in json.dumps(o) or "99,999" in json.dumps(o)]
+        ok = (s["workflow_errors"] == 0 and len(v2) == len(explainable) and all(o["source"] == "fallback" for o in v2)
+              and reasons == {expect} and not leaked)
+        check(f"{n}. model '{mode}' -> template fallback, nothing lost", ok,
+              f"v2 {len(v2)}/{len(explainable)}, reasons {sorted(reasons)}, leaked {len(leaked)}")
+
+
+async def amain(args):
+    data = load()
+    client = get_chat_client("foundry") if args.foundry else MockChatClient()
+    await main_run(data, client, args.show)
+    if not args.foundry:
+        await failure_runs(data)
+    print(f"\n{sum(results)}/{len(results)} checks passed -> {'PASS' if all(results) else 'FAIL'}")
+    return all(results)
+
+
+def main():
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--foundry", action="store_true", help="use the real Foundry model")
+    ap.add_argument("--show", action="store_true", help="print sample overlays")
+    ap.add_argument("--log", action="store_true", help="also save output to logs/")
+    args = ap.parse_args()
+    if args.log:
+        start_log("test_agents_foundry" if args.foundry else "test_agents_mock")
+    raise SystemExit(0 if asyncio.run(amain(args)) else 1)
+
+
+if __name__ == "__main__":
+    main()

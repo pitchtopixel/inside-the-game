@@ -80,3 +80,30 @@ python test_stats.py --metrica --log          # real Metrica match: sense checks
 - Metrica: 11/11 PASS — possession 56/44, pass acc 77%/74%, avg pass 17.6 m, ball speed ~46 km/h, difficulty 0.26/0.25, 6 swings · log: `logs/test_stats_metrica_2026-10-16_2316.txt`
 
 **Tuning:** all thresholds in `THRESHOLDS` at the top of `stats_engine.py` (documented in docs/metrics.md).
+
+## 4. Agents — `orchestrator.py` + `agents/` (Microsoft Agent Framework)
+Architecture: [docs/agents.md](docs/agents.md). Model: `LLM_PROVIDER` in `.env` (copy `.env.example`); default `mock` = offline, free.
+```powershell
+python test_agents.py --log                   # mock model: full match, 3 viewer profiles, + failure modes
+python test_agents.py --show                  # + print sample overlays
+python test_agents.py --foundry --log         # real Foundry model (needs .env + az login; a few cents)
+```
+**Expect:** run summary (LLM calls, fallbacks, latency, overlays), checks → `17/17 checks passed -> PASS`
+
+**Checks:**
+1. Every alert became a moment the analyst sees
+2. Every important moment (importance ≥ 45) got an explanation (version 2)
+3. Explanations came from the LLM agents, no fallbacks
+4. Instant (template) overlays p95 < 50 ms
+5. Half-time & full-time recaps for every viewer
+6. Every overlay matches the schema
+7. LLM cost bounded (< 150 calls per match)
+8. Fan sees fewer, bigger moments than analyst
+9. Spanish viewer gets Spanish overlays (mock marks `[es]`; real translation needs Foundry)
+10. Favourite-club highlight correct
+11. Player focus: all of the player's moments + tracker every 5 min
+12. Single-metric ticker for metric viewers
+13. Ingest agent rejects a duplicate event
+14–17. Model fails / returns bad JSON / hallucinates numbers / is too slow → template fallback, nothing lost
+
+**Last result (19 Oct, mock):** 17/17 PASS — 74 LLM calls, 0 fallbacks, instant p95 ~6 ms, 168 overlays, full match in ~1 s · log: `logs/test_agents_mock_2026-10-19_2009.txt`

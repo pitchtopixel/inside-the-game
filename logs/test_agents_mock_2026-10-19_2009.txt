@@ -1,0 +1,186 @@
+log: logs\test_agents_mock_2026-10-19_2009.txt
+
+== Full match (mock) ==
+{"llm_calls": {"explainer": 23, "narrator": 25, "personalizer": 26}, "fallbacks": {}, "llm_latency_p95_s": 0.0, "instant_latency_p95_ms": 5.95, "overlays": 168, "rejected_events": 0, "workflow_errors": 0}
+
+== Checks: pipeline ==
+  [PASS] 1. every alert became a moment the analyst sees  34/34
+  [PASS] 2. every important moment got an explanation (v2)  23/23
+  [PASS] 3. explanations come from the LLM agents (no fallbacks)  llm 100%, fallbacks {}
+  [PASS] 4. instant overlays p95 < 50 ms  5.95 ms
+  [PASS] 5. half-time and full-time recaps for every viewer  {'half_time': 3, 'full_time': 3}
+  [PASS] 6. every overlay matches the schema  168 overlays, 0 bad
+  [PASS] 7. LLM cost bounded (< 150 calls per match)  74 calls
+
+== Checks: personalization ==
+  [PASS] 8. fan sees fewer, bigger moments than analyst  fan 15 vs analyst 34, low-importance shown 0
+  [PASS] 9. Spanish viewer gets Spanish (v2) overlays  15 overlays
+  [PASS] 10. favourite-club highlight correct  5 highlighted
+  [PASS] 11. player focus: all of Arribas's moments + tracker every 5 min  7/7 moments, 20 trackers
+  [PASS] 12. single-metric ticker for metric viewers  {'fan_es_ngr': 20, 'focus_arribas': 20}
+
+== Checks: ingest ==
+  [PASS] 13. ingest agent rejects a replayed (duplicate) event  rejected 1
+
+{
+ "overlay_id": "ov-m-a001",
+ "version": 2,
+ "source": "llm",
+ "fallback_reason": null,
+ "kind": "moment",
+ "moment_id": "m-a001",
+ "event_id": "match_001-e0087",
+ "alert_type": "goal",
+ "category": "goal",
+ "tags": [
+  "turning_point"
+ ],
+ "importance": 100,
+ "priority": "high",
+ "clock": "02:26",
+ "elapsed_s": 146.7,
+ "period": 1,
+ "team": "RIV",
+ "player_id": "RIV27",
+ "player_name": "Arribas",
+ "headline": "Arribas scores for Riverside",
+ "text": "02:26 - Arribas scores for Riverside! Riverside lead 1-0.",
+ "why": "Riverside lead 1-0. Riverside have 2 shots and 0.7 xG to 0 and 0.0 for Northgate.",
+ "evidence": [
+  {
+   "label": "Riverside xG",
+   "value": 0.7
+  },
+  {
+   "label": "Northgate xG",
+   "value": 0.0
+  }
+ ],
+ "tag": "turning_point",
+ "display": {
+  "slot": "full_banner",
+  "duration_s": 10,
+  "show_at_elapsed_s": 146.7
+ },
+ "profile_id": "analyst_en",
+ "mode": "analyst",
+ "language": "en",
+ "pending_translation": false,
+ "highlight": {
+  "your_club": false,
+  "your_player": false
+ },
+ "metric": null
+}
+
+{
+ "overlay_id": "ov-m-a001",
+ "version": 2,
+ "source": "llm",
+ "fallback_reason": null,
+ "kind": "moment",
+ "moment_id": "m-a001",
+ "event_id": "match_001-e0087",
+ "alert_type": "goal",
+ "category": "goal",
+ "tags": [
+  "turning_point"
+ ],
+ "importance": 100,
+ "priority": "high",
+ "clock": "02:26",
+ "elapsed_s": 146.7,
+ "period": 1,
+ "team": "RIV",
+ "player_id": "RIV27",
+ "player_name": "Arribas",
+ "headline": "[es] Arribas scores for Riverside",
+ "text": "[es] 02:26 - Arribas scores for Riverside! Riverside lead 1-0.",
+ "why": "[es] Riverside lead 1-0.",
+ "evidence": [],
+ "tag": "turning_point",
+ "display": {
+  "slot": "full_banner",
+  "duration_s": 10,
+  "show_at_elapsed_s": 146.7
+ },
+ "profile_id": "fan_es_ngr",
+ "mode": "fan",
+ "language": "es",
+ "pending_translation": false,
+ "highlight": {
+  "your_club": false,
+  "your_player": false
+ },
+ "metric": {
+  "label": "Possession %",
+  "values": {
+   "Riverside": 71.0,
+   "Northgate": 29.0
+  }
+ }
+}
+
+{
+ "overlay_id": "player_tracker-focus_arribas-304",
+ "version": 1,
+ "kind": "player_tracker",
+ "source": "template",
+ "profile_id": "focus_arribas",
+ "mode": "fan",
+ "language": "en",
+ "clock": "05:04",
+ "elapsed_s": 304.1,
+ "period": 1,
+ "headline": "Arribas tracker",
+ "text": "Arribas: 10 touches, 3 passes (66.7%), 2 shots, 1 goals, 0.62 km, top speed 32.1 km/h",
+ "display": {
+  "slot": "side_panel",
+  "duration_s": 8,
+  "show_at_elapsed_s": 304.1
+ }
+}
+
+{
+ "overlay_id": "recap-half_time",
+ "version": 2,
+ "kind": "recap",
+ "recap_type": "half_time",
+ "source": "llm",
+ "fallback_reason": null,
+ "clock": "45+1:44",
+ "elapsed_s": 2804.3,
+ "period": 1,
+ "headline": "Half-time: Riverside 3-0 Northgate",
+ "text": "Half-time: Riverside 3-0 Northgate. Riverside had 60.4% of the ball and 11 shots (2.2 xG) against 6 shots (0.42 xG) for Northgate. Pass accuracy was 78.3% to 71.2%.",
+ "why": null,
+ "key_moments": [
+  "02:26 GOAL! Arribas scores for Riverside. Riverside 1-0 Northgate",
+  "03:58 Momentum shift: Riverside on top - 77% of the threat in the last 5 minutes",
+  "09:03 Big chance for Arribas (Riverside) - xG 0.47, off target",
+  "13:58 Momentum shift: Northgate on top - 69% of the threat in the last 5 minutes",
+  "17:27 GOAL! Arribas scores for Riverside - that's a brace. Riverside 2-0 Northgate",
+  "21:57 Momentum shift: Riverside on top - 79% of the threat in the last 5 minutes",
+  "25:57 Momentum shift: Northgate on top - 99% of the threat in the last 5 minutes",
+  "31:59 Momentum shift: Riverside on top - 96% of the threat in the last 5 minutes",
+  "35:29 GOAL! Arribas scores for Riverside - HAT-TRICK. Riverside 3-0 Northgate",
+  "44:58 Momentum shift: Northgate on top - 100% of the threat in the last 5 minutes"
+ ],
+ "player_of_the_period": {
+  "name": "Arribas",
+  "reason": "3 goals, 6 shots and 1.38 xG for Riverside."
+ },
+ "display": {
+  "slot": "full_screen",
+  "duration_s": 20,
+  "show_at_elapsed_s": 2804.3
+ },
+ "profile
+
+== Checks: failure recovery (first half, mock failure modes) ==
+  [PASS] 14. model 'fail' -> template fallback, nothing lost  v2 15/15, reasons ['error'], leaked 0
+  [PASS] 15. model 'bad_json' -> template fallback, nothing lost  v2 15/15, reasons ['bad_json'], leaked 0
+  [PASS] 16. model 'hallucinate' -> template fallback, nothing lost  v2 15/15, reasons ['ungrounded'], leaked 0
+  [PASS] 17. model 'slow' -> template fallback, nothing lost  v2 15/15, reasons ['timeout'], leaked 0
+
+17/17 checks passed -> PASS

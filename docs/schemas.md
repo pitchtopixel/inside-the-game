@@ -80,3 +80,29 @@ Client → server: `play`, `pause`, `speed` (`value`), `seek` (`minute`), `resta
   "data": { "share": 94.0 } }
 ```
 Alert types: `goal`, `card`, `substitution`, `big_chance`, `momentum`, `sprint_record`, `shot_speed_record`, `distance_milestone`, `possession_streak`, `pressure_spell`, `rhythm`.
+
+## Viewer profile
+```json
+{ "profile_id": "fan_es_ngr", "mode": "analyst|fan", "language": "en|es|fr|pt|hi|ar",
+  "club": "NGR", "player": "RIV27", "metric": "xg|possession|pass_accuracy|shots|pressures|top_speed|distance|pass_accuracy_player" }
+```
+All fields except `profile_id` are optional (defaults: analyst, English, no club / player / metric).
+
+## Overlay (orchestrator output, one per viewer)
+```json
+{ "overlay_id": "ov-m-a001", "version": 1, "kind": "moment|recap|player_tracker|metric_ticker",
+  "source": "template|llm|fallback", "fallback_reason": null,
+  "profile_id": "analyst_en", "mode": "analyst", "language": "en", "pending_translation": false,
+  "moment_id": "m-a001", "event_id": "match_001-e0087", "alert_type": "goal", "category": "goal",
+  "tags": ["turning_point"], "importance": 100, "priority": "high",
+  "clock": "02:26", "elapsed_s": 146.7, "period": 1, "team": "RIV", "player_id": "RIV27", "player_name": "Arribas",
+  "headline": "Arribas scores for Riverside", "text": "02:26 - Arribas scores for Riverside! Riverside lead 1-0.",
+  "why": "Riverside lead 1-0. Riverside have 2 shots and 0.7 xG to 0 and 0.0 for Northgate.",
+  "evidence": [ { "label": "Riverside xG", "value": 0.7 } ], "tag": "turning_point",
+  "highlight": { "your_club": false, "your_player": false },
+  "metric": { "label": "Possession %", "values": { "Riverside": 71.0, "Northgate": 29.0 } },
+  "display": { "slot": "full_banner|lower_third|side_panel|full_screen", "duration_s": 10, "show_at_elapsed_s": 146.7 } }
+```
+- **Version 1** arrives in milliseconds (template); **version 2** (same `overlay_id`) replaces it when the LLM agents finish.
+- Recaps add `recap_type` (`half_time|full_time`), `key_moments` (list of strings), `player_of_the_period` (`{name, reason}`).
+- Renderers should show the overlay at `display.show_at_elapsed_s` for `display.duration_s` in `display.slot`.
