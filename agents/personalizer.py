@@ -42,6 +42,9 @@ class Personalizer:
         self.team_names = team_names
         self.cache = {}
 
+    def add_profile(self, profile):
+        self.profiles[profile["profile_id"]] = {**DEFAULT_PROFILE, **profile}
+
     # ---------- rules ----------
     def visible(self, ov, prof):
         if ov["kind"] != "moment":

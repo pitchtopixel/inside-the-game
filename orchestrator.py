@@ -224,6 +224,7 @@ class Orchestrator:
         self.mc = MatchContext(meta, profiles, client or get_chat_client(), timeout_s)
         self.mc.schedule = self._schedule
         self.on_output = on_output
+        self.enrich = True  # False while fast-forwarding (seek): no LLM work for past moments
         self.outputs, self.instant_latency_s, self.workflow_errors = [], [], 0
         self.sem = asyncio.Semaphore(max_concurrency)
         self.tasks = set()
@@ -250,7 +251,13 @@ class Orchestrator:
             await self._emit(overlays)
         return overlays
 
+    def add_profile(self, profile):
+        """Register a viewer profile mid-match; it receives overlays from now on."""
+        self.mc.personalizer.add_profile(profile)
+
     def _schedule(self, request):
+        if not self.enrich:
+            return
         task = asyncio.create_task(self._run_background(request))
         self.tasks.add(task)
         task.add_done_callback(self.tasks.discard)

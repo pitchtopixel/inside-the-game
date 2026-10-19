@@ -107,3 +107,34 @@ python test_agents.py --foundry --log         # real Foundry model (needs .env +
 14–17. Model fails / returns bad JSON / hallucinates numbers / is too slow → template fallback, nothing lost
 
 **Last result (19 Oct, mock):** 17/17 PASS — 74 LLM calls, 0 fallbacks, instant p95 ~6 ms, 168 overlays, full match in ~1 s · log: `logs/test_agents_mock_2026-10-19_2009.txt`
+
+## 5. App (UI) — `app.py` + `static/`
+```powershell
+python app.py                                 # then open http://localhost:8600 and press Play
+python app.py --speed 20 --autoplay           # start playing immediately
+```
+- **Compare viewers** button (or open http://localhost:8600/?compare) → Analyst vs Fan side by side
+- Each pane: preset or custom viewer (mode, language, favourite club, player focus, metric)
+- Click the timeline or a key-moment chip to jump; badges show **AI · grounded**, **LIVE** (template) or **AUTO** (fallback)
+- `--mock-latency 1.0` (default) delays the mock model so the template → AI upgrade is visible; ignored with Foundry
+- Port 8600 (the streamer test page stays on 8500)
+
+**Automated test** (starts its own server on port 8601):
+```powershell
+python test_app.py --log
+```
+**Expect:** `10/10 checks passed -> PASS`
+
+**Checks:**
+1. Viewer receives every match event
+2. Live stats snapshots stream
+3. Each viewer only gets its own profile's overlays
+4. Fan sees fewer moments than analyst
+5. Template overlays upgrade to AI versions (v1 → v2)
+6. Fan overlays personalized (Spanish, club highlight, metric)
+7. Both viewers get half-time & full-time recaps
+8. Metric ticker reaches the fan viewer
+9. Timeline items stream to viewers
+10. Seek to 60' rebuilds state and timeline
+
+**Last result (19 Oct, mock):** 10/10 PASS — 2080/2080 events, 23 overlays upgraded, fan 15 vs analyst 34 moments · log: `logs/test_app_2026-10-19_2058.txt` · screenshot: `docs/img/ui_compare.png`
