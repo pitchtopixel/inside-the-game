@@ -13,9 +13,11 @@ Agents, UI and overlays depend on these formats. **Change = bump `schema_version
                                        "team_id", "starter", "attributes": {...} } ] },
               "away": { ... } },
   "events": [ Event, ... ],
-  "generator": { "seed", "momentum_spells": [ { "start_elapsed_s", "end_elapsed_s", "team" } ] }
+  "generator": { "seed", "momentum_spells": [ { "start_elapsed_s", "end_elapsed_s", "team" } ],
+                 "momentum_truth": [ { "elapsed_s", "home_minus_away" } ] }
 }
 ```
+`generator` is the **answer key** for evaluation (`test_stats.py`) only. The stats engine, agents and app never read it.
 
 ## Event
 | Field | Type | Notes |

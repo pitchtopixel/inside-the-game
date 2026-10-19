@@ -50784,6 +50784,404 @@
     "end_elapsed_s": 4671,
     "team": "EVW"
    }
+  ],
+  "momentum_truth": [
+   {
+    "elapsed_s": 60,
+    "home_minus_away": 0.188
+   },
+   {
+    "elapsed_s": 120,
+    "home_minus_away": 0.257
+   },
+   {
+    "elapsed_s": 180,
+    "home_minus_away": 0.039
+   },
+   {
+    "elapsed_s": 240,
+    "home_minus_away": -0.129
+   },
+   {
+    "elapsed_s": 300,
+    "home_minus_away": -0.179
+   },
+   {
+    "elapsed_s": 360,
+    "home_minus_away": -0.255
+   },
+   {
+    "elapsed_s": 420,
+    "home_minus_away": -0.306
+   },
+   {
+    "elapsed_s": 480,
+    "home_minus_away": -0.108
+   },
+   {
+    "elapsed_s": 540,
+    "home_minus_away": -0.197
+   },
+   {
+    "elapsed_s": 600,
+    "home_minus_away": -0.028
+   },
+   {
+    "elapsed_s": 660,
+    "home_minus_away": 0.081
+   },
+   {
+    "elapsed_s": 720,
+    "home_minus_away": 0.291
+   },
+   {
+    "elapsed_s": 780,
+    "home_minus_away": 0.332
+   },
+   {
+    "elapsed_s": 840,
+    "home_minus_away": 0.23
+   },
+   {
+    "elapsed_s": 900,
+    "home_minus_away": 0.022
+   },
+   {
+    "elapsed_s": 960,
+    "home_minus_away": 0.213
+   },
+   {
+    "elapsed_s": 1020,
+    "home_minus_away": 0.159
+   },
+   {
+    "elapsed_s": 1080,
+    "home_minus_away": 0.121
+   },
+   {
+    "elapsed_s": 1140,
+    "home_minus_away": -0.051
+   },
+   {
+    "elapsed_s": 1200,
+    "home_minus_away": 0.106
+   },
+   {
+    "elapsed_s": 1260,
+    "home_minus_away": 0.053
+   },
+   {
+    "elapsed_s": 1320,
+    "home_minus_away": -0.305
+   },
+   {
+    "elapsed_s": 1380,
+    "home_minus_away": -0.401
+   },
+   {
+    "elapsed_s": 1440,
+    "home_minus_away": -0.474
+   },
+   {
+    "elapsed_s": 1500,
+    "home_minus_away": -0.725
+   },
+   {
+    "elapsed_s": 1560,
+    "home_minus_away": -0.451
+   },
+   {
+    "elapsed_s": 1620,
+    "home_minus_away": -0.214
+   },
+   {
+    "elapsed_s": 1680,
+    "home_minus_away": 0.02
+   },
+   {
+    "elapsed_s": 1740,
+    "home_minus_away": -0.218
+   },
+   {
+    "elapsed_s": 1800,
+    "home_minus_away": -0.184
+   },
+   {
+    "elapsed_s": 1860,
+    "home_minus_away": -0.168
+   },
+   {
+    "elapsed_s": 1920,
+    "home_minus_away": -0.07
+   },
+   {
+    "elapsed_s": 1980,
+    "home_minus_away": 0.046
+   },
+   {
+    "elapsed_s": 2040,
+    "home_minus_away": -0.001
+   },
+   {
+    "elapsed_s": 2100,
+    "home_minus_away": -0.123
+   },
+   {
+    "elapsed_s": 2160,
+    "home_minus_away": -0.197
+   },
+   {
+    "elapsed_s": 2220,
+    "home_minus_away": -0.252
+   },
+   {
+    "elapsed_s": 2280,
+    "home_minus_away": -0.519
+   },
+   {
+    "elapsed_s": 2340,
+    "home_minus_away": -0.608
+   },
+   {
+    "elapsed_s": 2400,
+    "home_minus_away": -0.788
+   },
+   {
+    "elapsed_s": 2460,
+    "home_minus_away": -0.419
+   },
+   {
+    "elapsed_s": 2520,
+    "home_minus_away": -0.2
+   },
+   {
+    "elapsed_s": 2580,
+    "home_minus_away": -0.282
+   },
+   {
+    "elapsed_s": 2640,
+    "home_minus_away": -0.662
+   },
+   {
+    "elapsed_s": 2700,
+    "home_minus_away": -0.683
+   },
+   {
+    "elapsed_s": 2760,
+    "home_minus_away": -0.857
+   },
+   {
+    "elapsed_s": 2820,
+    "home_minus_away": -0.795
+   },
+   {
+    "elapsed_s": 2880,
+    "home_minus_away": -0.631
+   },
+   {
+    "elapsed_s": 2940,
+    "home_minus_away": -0.734
+   },
+   {
+    "elapsed_s": 3000,
+    "home_minus_away": -0.521
+   },
+   {
+    "elapsed_s": 3060,
+    "home_minus_away": -0.516
+   },
+   {
+    "elapsed_s": 3120,
+    "home_minus_away": -0.609
+   },
+   {
+    "elapsed_s": 3180,
+    "home_minus_away": -0.31
+   },
+   {
+    "elapsed_s": 3240,
+    "home_minus_away": 0.011
+   },
+   {
+    "elapsed_s": 3300,
+    "home_minus_away": 0.165
+   },
+   {
+    "elapsed_s": 3360,
+    "home_minus_away": 0.06
+   },
+   {
+    "elapsed_s": 3420,
+    "home_minus_away": -0.091
+   },
+   {
+    "elapsed_s": 3480,
+    "home_minus_away": -0.22
+   },
+   {
+    "elapsed_s": 3540,
+    "home_minus_away": -0.113
+   },
+   {
+    "elapsed_s": 3600,
+    "home_minus_away": -0.102
+   },
+   {
+    "elapsed_s": 3660,
+    "home_minus_away": 0.049
+   },
+   {
+    "elapsed_s": 3720,
+    "home_minus_away": 0.165
+   },
+   {
+    "elapsed_s": 3780,
+    "home_minus_away": 0.221
+   },
+   {
+    "elapsed_s": 3840,
+    "home_minus_away": 0.375
+   },
+   {
+    "elapsed_s": 3900,
+    "home_minus_away": 0.322
+   },
+   {
+    "elapsed_s": 3960,
+    "home_minus_away": 0.159
+   },
+   {
+    "elapsed_s": 4020,
+    "home_minus_away": 0.083
+   },
+   {
+    "elapsed_s": 4080,
+    "home_minus_away": 0.206
+   },
+   {
+    "elapsed_s": 4140,
+    "home_minus_away": 0.054
+   },
+   {
+    "elapsed_s": 4200,
+    "home_minus_away": 0.025
+   },
+   {
+    "elapsed_s": 4260,
+    "home_minus_away": -0.134
+   },
+   {
+    "elapsed_s": 4320,
+    "home_minus_away": -0.34
+   },
+   {
+    "elapsed_s": 4380,
+    "home_minus_away": -0.41
+   },
+   {
+    "elapsed_s": 4440,
+    "home_minus_away": -0.401
+   },
+   {
+    "elapsed_s": 4500,
+    "home_minus_away": -0.312
+   },
+   {
+    "elapsed_s": 4560,
+    "home_minus_away": -0.371
+   },
+   {
+    "elapsed_s": 4620,
+    "home_minus_away": -0.409
+   },
+   {
+    "elapsed_s": 4680,
+    "home_minus_away": -0.228
+   },
+   {
+    "elapsed_s": 4740,
+    "home_minus_away": -0.524
+   },
+   {
+    "elapsed_s": 4800,
+    "home_minus_away": -0.312
+   },
+   {
+    "elapsed_s": 4860,
+    "home_minus_away": -0.191
+   },
+   {
+    "elapsed_s": 4920,
+    "home_minus_away": 0.035
+   },
+   {
+    "elapsed_s": 4980,
+    "home_minus_away": 0.186
+   },
+   {
+    "elapsed_s": 5040,
+    "home_minus_away": 0.356
+   },
+   {
+    "elapsed_s": 5100,
+    "home_minus_away": 0.2
+   },
+   {
+    "elapsed_s": 5160,
+    "home_minus_away": 0.024
+   },
+   {
+    "elapsed_s": 5220,
+    "home_minus_away": 0.143
+   },
+   {
+    "elapsed_s": 5280,
+    "home_minus_away": 0.078
+   },
+   {
+    "elapsed_s": 5340,
+    "home_minus_away": 0.123
+   },
+   {
+    "elapsed_s": 5400,
+    "home_minus_away": 0.072
+   },
+   {
+    "elapsed_s": 5460,
+    "home_minus_away": 0.174
+   },
+   {
+    "elapsed_s": 5520,
+    "home_minus_away": 0.144
+   },
+   {
+    "elapsed_s": 5580,
+    "home_minus_away": -0.038
+   },
+   {
+    "elapsed_s": 5640,
+    "home_minus_away": 0.071
+   },
+   {
+    "elapsed_s": 5700,
+    "home_minus_away": -0.011
+   },
+   {
+    "elapsed_s": 5760,
+    "home_minus_away": 0.013
+   },
+   {
+    "elapsed_s": 5820,
+    "home_minus_away": 0.196
+   },
+   {
+    "elapsed_s": 5880,
+    "home_minus_away": 0.154
+   },
+   {
+    "elapsed_s": 5940,
+    "home_minus_away": -0.002
+   }
   ]
  }
 }

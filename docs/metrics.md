@@ -29,6 +29,13 @@ difficulty = 0.10
 ```
 - `forward` = metres gained towards the opponent's goal
 - **Hard pass** = difficulty ≥ 0.60
+- Difficulty is a **rating, not a failure probability**. In the generator, the chance a pass is completed is
+  `clamp(1.25 − 1.58 × difficulty' + 0.8 × (pass_skill − 0.8) + 0.05 × momentum, 0.10, 0.98)`, where
+  `difficulty'` adds ±0.04 of unseen noise. For an average passer (skill 0.8, even momentum):
+
+  | Difficulty | 0.20 | 0.40 | 0.60 | 0.81 |
+  |---|---|---|---|---|
+  | Completion chance | ~93% | ~62% | ~30% | ~10% |
 - Example: a 40 m forward through ball under pressure into the box = 0.10 + 0.23 + 0.18 + 0.18 + 0.12 = **0.81**
 
 ## Pass quality
@@ -51,7 +58,7 @@ The window resets at each half; no pattern alerts in the first 3 minutes of a ha
 | Pattern | Definition |
 |---|---|
 | **Threat** | +1 per final-third pass, +2 + 8×xG per shot, +0.3 per pressure in the opponent's half |
-| **Momentum / on top** | A team has ≥ 65% of the window's threat (minimum 6 threat in total), confirmed on 2 consecutive checks |
+| **Momentum / on top** | A team has ≥ 65% of the window's threat (minimum 14 threat in total), confirmed on 2 consecutive checks. Evaluated against the generator's hidden momentum: right 78–79% of the time |
 | **Pressure spell** | ≥ 15 pressures in the window and ≥ 2× the opponent's |
 | **Possession streak** | ≥ 12 consecutive completed passes in one spell |
 | **Chaos** | ≥ 4.0 turnovers per minute |

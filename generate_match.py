@@ -135,6 +135,7 @@ class Sim:
         self.score = {"home": 0, "away": 0}
         self.yellow = set()
         self.mom = 0.0  # >0 favours home, <0 favours away
+        self.mom_log = []  # (elapsed_s, mom) every minute: the true hidden momentum, saved as ground truth
         self.spells = self._make_spells()
         self.stoppage = {1: self.rng.randint(1, 3), 2: self.rng.randint(3, 6)}
         self.period_len = {p: HALF + m * 60 + self.rng.randint(0, 50) for p, m in self.stoppage.items()}
@@ -254,6 +255,7 @@ class Sim:
         while self.elapsed() >= self.next_minute:
             bias = sum(0.6 if sd == "home" else -0.6 for a, b, sd in self.spells if a <= self.next_minute < b)
             self.mom = clamp(0.75 * self.mom + 0.25 * (bias + 0.05) + self.rng.gauss(0, 0.15), -1, 1)
+            self.mom_log.append((self.next_minute, round(self.mom, 3)))
             self.next_minute += 60
         while self.elapsed() >= self.next_phys:
             self.physical_update()
@@ -570,7 +572,9 @@ def build_output(sim, mcfg):
     }
     return {"schema_version": "1.0", "match": match, "teams": teams, "events": sim.events,
             "generator": {"seed": sim.seed, "momentum_spells": [
-                {"start_elapsed_s": a, "end_elapsed_s": b, "team": TEAMS[s]["team_id"]} for a, b, s in sim.spells]}}
+                {"start_elapsed_s": a, "end_elapsed_s": b, "team": TEAMS[s]["team_id"]} for a, b, s in sim.spells],
+                # hidden per-minute momentum: >0 home on top, <0 away on top (answer key for evaluation only)
+                "momentum_truth": [{"elapsed_s": t, "home_minus_away": m} for t, m in sim.mom_log]}}
 
 
 def write_csv(events, path):

@@ -1,0 +1,47 @@
+log: logs\validate_all_2026-10-20_0058.txt
+
+== match_001.json  {'RIV': 4, 'NGR': 1}  2080 events ==
+  [PASS] 1. every event has the required fields; ids unique  ok
+  [PASS] 2. time never goes backwards; periods in order  ok
+  [PASS] 3. teams and players exist; players act for their own team  ok
+  [PASS] 4. all coordinates inside the 105 x 68 pitch  ok
+  [PASS] 5. every goal follows a scoring shot; score adds up to the final score  ok
+  [PASS] 6. shot outcomes consistent (goal -> goal event, saved -> opponent save, xG 0-1)  ok
+  [PASS] 7. passes have start, end, outcome; distance matches coordinates; difficulty 0.05-0.95  ok
+  [PASS] 8. period lengths and minutes follow the clock rules (stoppage shown as 45+ / 90+)  ok
+  [PASS] 9. substitutes only play after coming on; subbed-off players stop; max 5 subs  ok
+  [PASS] 10. conceding team kicks off after a goal; two yellows mean a red  ok
+  [PASS] self-test: break rule 1 -> check 1 fails
+  [PASS] self-test: break rule 2 -> check 2 fails
+  [PASS] self-test: break rule 3 -> check 3 fails
+  [PASS] self-test: break rule 4 -> check 4 fails
+  [PASS] self-test: break rule 5 -> check 5 fails
+  [PASS] self-test: break rule 6 -> check 6 fails
+  [PASS] self-test: break rule 7 -> check 7 fails
+  [PASS] self-test: break rule 8 -> check 8 fails
+  [PASS] self-test: break rule 9 -> check 9 fails
+  [PASS] self-test: break rule 10 -> check 10 fails
+  10/10 checks passed, 0 warnings -> PASS
+
+== match_002.json  {'HBC': 1, 'EVW': 4}  1980 events ==
+  [PASS] 1. every event has the required fields; ids unique  ok
+  [PASS] 2. time never goes backwards; periods in order  ok
+  [PASS] 3. teams and players exist; players act for their own team  ok
+  [PASS] 4. all coordinates inside the 105 x 68 pitch  ok
+  [PASS] 5. every goal follows a scoring shot; score adds up to the final score  ok
+  [PASS] 6. shot outcomes consistent (goal -> goal event, saved -> opponent save, xG 0-1)  ok
+  [PASS] 7. passes have start, end, outcome; distance matches coordinates; difficulty 0.05-0.95  ok
+  [PASS] 8. period lengths and minutes follow the clock rules (stoppage shown as 45+ / 90+)  ok
+  [PASS] 9. substitutes only play after coming on; subbed-off players stop; max 5 subs  ok
+  [PASS] 10. conceding team kicks off after a goal; two yellows mean a red  ok
+  [PASS] self-test: break rule 1 -> check 1 fails
+  [PASS] self-test: break rule 2 -> check 2 fails
+  [PASS] self-test: break rule 3 -> check 3 fails
+  [PASS] self-test: break rule 4 -> check 4 fails
+  [PASS] self-test: break rule 5 -> check 5 fails
+  [PASS] self-test: break rule 6 -> check 6 fails
+  [PASS] self-test: break rule 7 -> check 7 fails
+  [PASS] self-test: break rule 8 -> check 8 fails
+  [PASS] self-test: break rule 9 -> check 9 fails
+  [PASS] self-test: break rule 10 -> check 10 fails
+  10/10 checks passed, 0 warnings -> PASS

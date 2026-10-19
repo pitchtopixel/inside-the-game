@@ -21,7 +21,7 @@ THRESHOLDS = {
     "check_every_s": 60,              # how often patterns are evaluated
     "warmup_s": 180,                  # no pattern alerts before this much play
     "momentum_share": 0.65,           # share of threat needed to be "on top"
-    "momentum_min_threat": 6.0,       # ignore quiet windows
+    "momentum_min_threat": 14.0,      # ignore quiet windows (tuned on both matches vs true momentum)
     "momentum_confirm_checks": 2,     # consecutive checks before a swing is confirmed
     "big_chance_xg": 0.3,
     "final_third_x": 70.0,

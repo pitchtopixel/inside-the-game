@@ -30,6 +30,17 @@ Each match takes the first seed whose result fits its storyline (`STORIES`). Pla
 - `match_002` (story *comeback*): Harbourside 1–4 Eastvale — Balogun 2' · Bittencourt 28', 45+2' · Sampaio 78' · Cordeiro 89' · 1,980 events
 - 64 players, 64 unique surnames
 
+### Validate the generated matches — `validate_match.py`
+```powershell
+python validate_match.py --self-test --log    # every match; --self-test proves each check can fail
+python validate_match.py match_002            # one match
+```
+**Expect:** per match `10/10 checks passed, 0 warnings -> PASS` and 10 self-test lines PASS.
+Checks: fields & ids · time order · teams/players · pitch bounds · goals follow scoring shots & score adds up ·
+shot outcomes · pass geometry & difficulty · clock rules · substitutions · kick-offs & cards. Realism ranges = warnings.
+
+**Last result (20 Oct):** match_001 and match_002 10/10, 0 warnings; self-test 10/10 · log: `logs/validate_all_2026-10-20_0058.txt`
+
 ### Optional: Metrica sample (real data, dev testing only — never published)
 ```powershell
 python fetchdata.py
@@ -68,6 +79,7 @@ python test_stats.py --metrica --log          # real Metrica match: sense checks
 3. Possession sums to 100%
 4. Pass accuracy & xG match raw events
 5. ≥3 of 4 scripted momentum spells detected
+5b. "On top" calls agree with the generator's true hidden momentum ≥ 70% of the time
 6. Insight alerts 1–3 per 10 min (goals, cards, subs excluded) and every goal alerted
 7. Clean match has no rejected events
 8. Snapshot carries `schema_version`
@@ -83,10 +95,10 @@ python test_stats.py --metrica --log          # real Metrica match: sense checks
 12. Score matches source
 13. No rejected events
 
-**Last result (19 Oct):**
-- match_001: 12/12 PASS — 4/4 spells detected, 2.0 insight alerts / 10 min · log: `logs/test_stats_match_001_2026-10-19_2113.txt`
-- match_002: 12/12 PASS — 3/4 spells detected, 2.1 insight alerts / 10 min · log: `logs/test_stats_match_002_2026-10-19_2114.txt`
-- Metrica: 11/11 PASS — possession 56/44, pass acc 77%/74%, avg pass 17.6 m, ball speed ~46 km/h, difficulty 0.26/0.25, 6 swings · log: `logs/test_stats_metrica_2026-10-19_2114.txt`
+**Last result (20 Oct):**
+- match_001: 13/13 PASS — 4/4 spells detected, "on top" right 78% vs true momentum, 1.8 insight alerts / 10 min · log: `logs/test_stats_match_001_2026-10-20_0059.txt`
+- match_002: 13/13 PASS — 3/4 spells detected, "on top" right 79%, 1.9 insight alerts / 10 min · log: `logs/test_stats_match_002_2026-10-20_0100.txt`
+- Metrica: 11/11 PASS — possession 56/44, pass acc 77%/74%, avg pass 17.6 m, ball speed ~46 km/h, difficulty 0.26/0.25, 4 swings · log: `logs/test_stats_metrica_2026-10-20_0100.txt`
 
 **Tuning:** all thresholds in `THRESHOLDS` at the top of `stats_engine.py` (documented in docs/metrics.md).
 
@@ -118,7 +130,7 @@ python test_agents.py --foundry --log         # real Foundry model (needs .env +
 contradicts the data / is too slow → template fallback, nothing lost, no invented text on screen
 21. Contradiction rules: 6 wrong sentences caught, 5 true sentences pass (no false alarms)
 
-**Last result (20 Oct, mock):** 21/21 PASS on match_001 and match_002 · logs: `logs/test_agents_mock_match_001_2026-10-20_0042.txt`, `logs/test_agents_mock_match_002_2026-10-20_0042.txt`
+**Last result (20 Oct, mock):** 21/21 PASS on match_001 and match_002 · logs: `logs/test_agents_mock_match_001_2026-10-20_0059.txt`, `logs/test_agents_mock_match_002_2026-10-20_0100.txt`
 
 ## 5. App (UI) — `app.py` + `static/`
 ```powershell
@@ -152,6 +164,6 @@ python test_app.py --match match_002 --log
 9. Timeline items stream to viewers
 10. Seek to 60' rebuilds state and timeline
 
-**Last result (19 Oct, mock):**
-- match_001: 10/10 PASS · log: `logs/test_app_match_001_2026-10-19_2113.txt` · screenshot: `docs/img/ui_compare.png`
-- match_002: 10/10 PASS · log: `logs/test_app_match_002_2026-10-19_2114.txt` · screenshot: `docs/img/ui_match002_pitch.png`
+**Last result (20 Oct, mock):**
+- match_001: 10/10 PASS · log: `logs/test_app_match_001_2026-10-20_0059.txt` · screenshot: `docs/img/ui_compare.png`
+- match_002: 10/10 PASS · log: `logs/test_app_match_002_2026-10-20_0100.txt` · screenshot: `docs/img/ui_match002_pitch.png`

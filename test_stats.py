@@ -105,6 +105,20 @@ def test_synthetic(full, match_id="match_001"):
         print(f"     spell {sp['team']} {sp['start_elapsed_s'] // 60}'-{sp['end_elapsed_s'] // 60}': "
               f"on top {frac:.0%} of the time -> {'detected' if hit else 'missed'}")
     check("5. momentum spells detected (>=3 of 4)", hits >= 3, f"{hits}/{len(spells)}")
+    # Precision: when the engine says a team is on top, did that team really have the upper hand?
+    # Ground truth = the generator's hidden per-minute momentum, averaged over the engine's 5-minute window
+    # (the scripted spells above are only part of it; random swings in between are real momentum too).
+    truth = data["generator"]["momentum_truth"]
+    home = data["teams"]["home"]["team_id"]
+    claims = [(t, dom) for t, _, dom in st.momentum_timeline if dom]
+    right = 0
+    for t, dom in claims:
+        vals = [x["home_minus_away"] for x in truth if t - 300 <= x["elapsed_s"] <= t]
+        right += (sum(vals) / max(len(vals), 1) > 0) == (dom == home)
+    precision = right / max(len(claims), 1)
+    on_top_share = len(claims) / max(len(st.momentum_timeline), 1)
+    check("5b. 'on top' calls agree with true momentum (>= 70%)", precision >= 0.7,
+          f"{right}/{len(claims)} = {precision:.0%}; a team is called on top {on_top_share:.0%} of the time")
     goals_alerted = sum(a["type"] == "goal" for a in st.alerts)
     rate = alert_rate(st)
     check("6. insight alert rate 1-3 per 10 min, all goals alerted",
