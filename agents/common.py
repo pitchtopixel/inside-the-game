@@ -152,6 +152,69 @@ def out_of_scope_claims(output, facts):
     return sorted(t for t in found if t not in fact_text)
 
 
+def _find(facts, key):
+    """First value for `key` anywhere in a nested fact sheet."""
+    if isinstance(facts, dict):
+        if key in facts:
+            return facts[key]
+        for v in facts.values():
+            found = _find(v, key)
+            if found is not None:
+                return found
+    return None
+
+
+LEAD = r"(lead|leads|are leading|go ahead|goes ahead|are ahead|in front)"
+TRAIL = r"(trail|trails|are trailing|are behind|fall behind)"
+ON_TOP = r"(on top|in control|take control|takes control|dominat\w*|in the ascendancy)"
+HEADER = re.compile(r"\b(header|headed|heads (it|home|in)|with (his|her|a) head)\b", re.I)
+FOOT = re.compile(r"\b(left|right)[- ]?foot(ed)?\b|\bvolley\w*\b", re.I)
+SAVE = re.compile(r"\b(saves?|saved|parried|stopped by the (keeper|goalkeeper))\b", re.I)
+MISS = re.compile(r"\b(wide|off target|over the bar|hits? the (post|bar)|blocked)\b", re.I)
+LEVEL = re.compile(r"\b(all square|level at|on level terms|equalis\w*|equaliz\w*)\b", re.I)
+MOMENTUM_TYPES = ("momentum", "rhythm", "pressure_spell", "possession_streak")
+
+
+def contradictions(output, facts):
+    """
+    Plain-word claims that contradict the data (English): who leads, who is on top,
+    header vs foot, and how a chance ended. Returns a list of short descriptions.
+    """
+    text = " ".join(_texts(output, []))
+    score = _find(facts, "score") or {}
+    moment = _find(facts, "moment") or {}
+    data = moment.get("data") or {}
+    bad = []
+    for team, goals in score.items():
+        others = [g for t, g in score.items() if t != team]
+        if not others:
+            continue
+        t = re.escape(team)
+        if re.search(rf"\b{t}\s+{LEAD}\b", text, re.I) and not goals > max(others):
+            bad.append(f"{team} do not lead")
+        if re.search(rf"\b{t}\s+{TRAIL}\b", text, re.I) and not goals < min(others):
+            bad.append(f"{team} do not trail")
+        on_top = (_find(facts, "momentum") or {}).get("on_top")
+        claims_on_top = re.search(rf"\b{t}\s+(are\s+|is\s+)?{ON_TOP}", text, re.I)
+        about_this = moment.get("team_name") == team and moment.get("type") in MOMENTUM_TYPES
+        is_recap = _find(facts, "key_moments") is not None  # recaps retell earlier phases
+        if claims_on_top and on_top != team and not about_this and not is_recap:
+            bad.append(f"{team} are not on top")
+    if LEVEL.search(text) and len(set(score.values())) > 1:
+        bad.append("the score is not level")
+    body = data.get("body_part")
+    if body == "head" and FOOT.search(text):
+        bad.append("it was a header")
+    if body in ("left_foot", "right_foot") and HEADER.search(text):
+        bad.append("it was not a header")
+    outcome = data.get("outcome")
+    if outcome in ("off_target", "post", "blocked") and SAVE.search(text):
+        bad.append(f"the shot was not saved ({outcome})")
+    if outcome == "saved" and MISS.search(text):
+        bad.append("the shot was saved")
+    return bad
+
+
 def grounding_problem(output, facts):
     """None if the output is grounded in the facts, else the reason it is not."""
     if ungrounded_numbers(output, facts):
@@ -160,6 +223,8 @@ def grounding_problem(output, facts):
         return "unknown_name"
     if out_of_scope_claims(output, facts):
         return "out_of_scope"
+    if contradictions(output, facts):
+        return "contradiction"
     return None
 
 

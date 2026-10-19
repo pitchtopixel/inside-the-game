@@ -38,15 +38,19 @@ the explained, personalized version replaces it (same `overlay_id`, `version` 2)
 4. **Hallucination (grounding) checks** — the answer is rejected if it contains:
    - a **number** not in the fact sheet (normal rounding allowed),
    - a **name** (capitalised word mid-sentence) not in the fact sheet — e.g. an invented scorer or competition,
-   - an **out-of-scope claim** about things we have no data on (season, career, injury, transfer, crowd, history…).
+   - an **out-of-scope claim** about things we have no data on (season, career, injury, transfer, crowd, history…),
+   - a **contradiction** of the data in plain words: a team "leads"/"trails" against the score, "all square" when
+     it is not, a team "on top" against the momentum, "header" vs foot, "saved" vs missed.
 
-   Words beyond these are not machine-checked; prompts forbid invented facts, and an AI groundedness
-   evaluator (Microsoft Foundry) is planned for the top moments.
+   Other plain-word claims (e.g. "beat two defenders") are not machine-checked; prompts forbid invented facts,
+   and an AI groundedness evaluator (Microsoft Foundry) is planned for the top moments. No check can guarantee
+   zero hallucination — these layers make it rare, detectable and visible (`source`, `fallback_reason`).
 5. **Template fallback** — on any failure the overlay is built from templates; `source: "fallback"` and `fallback_reason` record why.
 6. **Metrics** — LLM calls per agent, fallbacks by reason, latency; shown in tests.
 
 Tested failure modes (mock model): unavailable, malformed JSON, invented numbers, invented names,
-out-of-scope claims, too slow → all degrade to template overlays, none lost, no invented text on screen.
+out-of-scope claims, contradictions, too slow → all degrade to template overlays, none lost, no invented
+text on screen. The contradiction rules are also tested directly on hand-written true and false sentences.
 
 ## Cost control
 - Only moments with importance ≥ 45 are explained (~23 per match); low-priority alerts stay template-only.

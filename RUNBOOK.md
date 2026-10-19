@@ -98,7 +98,7 @@ python test_agents.py --match match_002 --log # another match (profiles: away-cl
 python test_agents.py --show                  # + print sample overlays
 python test_agents.py --foundry --log         # real Foundry model (needs .env + az login; a few cents)
 ```
-**Expect:** run summary (LLM calls, fallbacks, latency, overlays), checks → `19/19 checks passed -> PASS`
+**Expect:** run summary (LLM calls, fallbacks, latency, overlays), checks → `21/21 checks passed -> PASS`
 
 **Checks:**
 1. Every alert became a moment the analyst sees
@@ -114,10 +114,11 @@ python test_agents.py --foundry --log         # real Foundry model (needs .env +
 11. Player focus: all of the player's moments + tracker every 5 min
 12. Single-metric ticker for metric viewers
 13. Ingest agent rejects a duplicate event
-14–19. Model fails / returns bad JSON / invents numbers / invents names / makes out-of-scope claims / is too slow
-→ template fallback, nothing lost, no invented text on screen
+14–20. Model fails / returns bad JSON / invents numbers / invents names / makes out-of-scope claims /
+contradicts the data / is too slow → template fallback, nothing lost, no invented text on screen
+21. Contradiction rules: 6 wrong sentences caught, 5 true sentences pass (no false alarms)
 
-**Last result (20 Oct, mock):** 19/19 PASS on match_001 and match_002 · logs: `logs/test_agents_mock_match_00*_2026-10-20_*.txt`
+**Last result (20 Oct, mock):** 21/21 PASS on match_001 and match_002 · logs: `logs/test_agents_mock_match_001_2026-10-20_0042.txt`, `logs/test_agents_mock_match_002_2026-10-20_0042.txt`
 
 ## 5. App (UI) — `app.py` + `static/`
 ```powershell

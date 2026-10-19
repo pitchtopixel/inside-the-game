@@ -87,6 +87,7 @@ class MatchState:
         self.last_alert, self.last_low = {}, -1e9
         self.records = {"sprint": 0.0, "shot": 0.0}
         self.km_milestone_done = False
+        self.last_body_part = None
         self.alerts, self._new = [], []
         self.period_start_t = 0.0
         self.seen, self.rejected = set(), defaultdict(int)  # bad input is skipped and counted, never fatal
@@ -230,6 +231,7 @@ class MatchState:
         if xg is None and ev.get("x") is not None:
             xg = xg_model(self.x_rel(team, ev["x"]), self.y_rel(team, ev["y"]), d.get("body_part") == "head")
         xg = xg or 0.0
+        self.last_body_part = d.get("body_part")  # the goal event that follows reuses it
         for s in (ts, ps):
             s["shots"] += 1
             s["xg"] += xg
@@ -241,7 +243,8 @@ class MatchState:
             if outcome != "goal":
                 self._alert("big_chance", "medium",
                             f"Big chance for {self.name(pid)} ({self.short[team]}) - xG {xg:.2f}, {outcome.replace('_', ' ')}",
-                            team, pid, xg=xg, outcome=outcome, shot_speed_kmh=speed or None)
+                            team, pid, xg=xg, outcome=outcome, shot_speed_kmh=speed or None,
+                            body_part=d.get("body_part"))
         if speed >= self.th["shot_record_kmh"] and speed > self.records["shot"]:
             self.records["shot"] = speed
             self._alert("shot_speed_record", "low", f"Fastest shot of the match: {self.name(pid)}, {speed:.0f} km/h",
@@ -260,7 +263,8 @@ class MatchState:
                     f"GOAL! {self.name(pid)} scores for {self.short[team]}{tag}. "
                     f"{self.short[h]} {self.score[h]}-{self.score[a]} {self.short[a]}",
                     team, pid, score=dict(self.score), player_goals=ps["goals"], assist_id=d.get("assist_id"),
-                    xg=d.get("xg"), shot_speed_kmh=d.get("shot_speed_kmh"))
+                    xg=d.get("xg"), shot_speed_kmh=d.get("shot_speed_kmh"),
+                    body_part=self.last_body_part)
 
     def _on_tackle(self, ev, team, pid, d):
         won = ev.get("outcome") == "won"

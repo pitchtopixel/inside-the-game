@@ -133,7 +133,8 @@ async def failure_runs(data):
     first_half = [e for e in data["events"] if e["period"] == 1]
     for n, (mode, expect) in enumerate([("fail", "error"), ("bad_json", "bad_json"),
                                         ("hallucinate", "ungrounded"), ("wrong_name", "unknown_name"),
-                                        ("off_topic", "out_of_scope"), ("slow", "timeout")], start=14):
+                                        ("off_topic", "out_of_scope"), ("contradict", "contradiction"),
+                                        ("slow", "timeout")], start=14):
         orch = await run_match(data, MockChatClient(mode=mode), first_half, timeout_s=0.05)
         s = orch.summary()
         moments = [o for o in latest(orch, "analyst_en") if o["kind"] == "moment"]
@@ -141,11 +142,31 @@ async def failure_runs(data):
         explainable = [o for o in moments if o["importance"] >= 45]
         reasons = {k.split(":")[1] for k in s["fallbacks"]}
         leaked = [o for o in orch.outputs
-                  if any(s in json.dumps(o, ensure_ascii=False) for s in ("47th", "99,999", "Vargas", "season"))]
+                  if any(s in json.dumps(o, ensure_ascii=False)
+                         for s in ("47th", "99,999", "Vargas", "season", "lead the game"))]
         ok = (s["workflow_errors"] == 0 and len(v2) == len(explainable) and all(o["source"] == "fallback" for o in v2)
               and reasons == {expect} and not leaked)
         check(f"{n}. model '{mode}' -> template fallback, nothing lost", ok,
               f"v2 {len(v2)}/{len(explainable)}, reasons {sorted(reasons)}, leaked {len(leaked)}")
+
+
+def contradiction_rules():
+    """Hand-written sentences against a known fact sheet: wrong claims flagged, true ones pass."""
+    from agents.common import contradictions
+    print("\n== Checks: contradiction rules ==")
+    facts = {"score": {"Riverside": 1, "Northgate": 0}, "momentum": {"on_top": "Riverside"},
+             "moment": {"type": "goal", "team_name": "Riverside", "data": {"body_part": "right_foot"}}}
+    saved = {**facts, "moment": {"type": "big_chance", "team_name": "Riverside", "data": {"outcome": "off_target"}}}
+    wrong = [("Northgate lead the game.", facts), ("Riverside trail after the break.", facts),
+             ("A thumping header from Arribas!", facts), ("Northgate are on top now.", facts),
+             ("It finishes all square.", facts), ("Brilliant save by the keeper.", saved)]
+    right = [("Riverside lead 1-0.", facts), ("Northgate trail and need a response.", facts),
+             ("Arribas fires it in with his right foot.", facts), ("Riverside are on top.", facts),
+             ("The shot goes wide.", saved)]
+    missed = [s for s, f in wrong if not contradictions({"t": s}, f)]
+    false_alarms = [s for s, f in right if contradictions({"t": s}, f)]
+    check("21. contradictions caught, true claims pass", not missed and not false_alarms,
+          f"caught {len(wrong) - len(missed)}/{len(wrong)}, false alarms {len(false_alarms)} {missed + false_alarms}")
 
 
 async def amain(args):
@@ -156,6 +177,7 @@ async def amain(args):
     await main_run(data, client, args.show)
     if not args.foundry:
         await failure_runs(data)
+    contradiction_rules()
     print(f"\n{sum(results)}/{len(results)} checks passed -> {'PASS' if all(results) else 'FAIL'}")
     return all(results)
 
