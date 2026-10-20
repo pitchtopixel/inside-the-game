@@ -31,6 +31,7 @@ Input JSON: {"task": "personalize", "profile": {"mode", "language", "club_name",
 - If club_name is set, write from that club's supporters' point of view (still factual).
 - Translate every field into the profile language (natural broadcast style).
 - Never add facts, numbers or names that are not in the overlay; keep player and team names exactly as given.
+- Sentence case: capitalise only the first word and names.
 Reply with JSON only: {"headline": str, "text": str, "why": str}"""
 
 

@@ -18,13 +18,15 @@ class Metrics:
     def __init__(self):
         self.calls = defaultdict(int)       # agent -> calls
         self.fallbacks = defaultdict(int)   # reason -> count
+        self.rejected_names = defaultdict(int)  # word -> times an answer was rejected for it
+        self.rejected = []  # every rejected answer: agent, problem, why, text (shown by test_agents.py)
         self.latency_s = []
 
     def summary(self):
         lat = sorted(self.latency_s)
         p95 = lat[int(0.95 * (len(lat) - 1))] if lat else 0.0
         return {"llm_calls": dict(self.calls), "fallbacks": dict(self.fallbacks),
-                "llm_latency_p95_s": round(p95, 3)}
+                "rejected_names": dict(self.rejected_names), "llm_latency_p95_s": round(p95, 3)}
 
 
 # ---------- fact sheets (the only data an LLM may use) ----------
@@ -121,6 +123,7 @@ def _texts(obj, out):
 WORD = re.compile(r"[\wÀ-ÿ'’-]+")
 CAPITALISED = re.compile(r"(?<![\w'’-])[A-ZÀ-ÖØ-Þ][a-zà-öø-ÿ'’-]*[a-zà-öø-ÿ]")  # whole word, e.g. "Vargas"
 SENTENCE_START = re.compile(r"(^|[.!?¡¿:;\-–—\]\"“(])\s*$")
+POSSESSIVE = re.compile(r"['’]s$")  # "Riverside's" -> "Riverside"
 NAME_ALLOW = {"xG"}
 
 
@@ -135,8 +138,9 @@ def unknown_names(output, facts):
         for m in CAPITALISED.finditer(s):
             if SENTENCE_START.search(s[:m.start()]):
                 continue  # first word of a sentence is capitalised anyway
-            if m.group(0).lower() not in known and m.group(0) not in NAME_ALLOW:
-                bad.append(m.group(0))
+            word = POSSESSIVE.sub("", m.group(0))
+            if word.lower() not in known and word not in NAME_ALLOW:
+                bad.append(word)
     return sorted(set(bad))
 
 
@@ -215,6 +219,16 @@ def contradictions(output, facts):
     return bad
 
 
+def grounding_feedback(output, facts, problem):
+    """Short note telling the model why its answer was rejected (sent with the retry)."""
+    detail = {"ungrounded": lambda: f"numbers not in the facts: {ungrounded_numbers(output, facts)}",
+              "unknown_name": lambda: f"capitalised words that are not names in the facts: {unknown_names(output, facts)}"
+                                      " - use only those names, sentence case",
+              "out_of_scope": lambda: f"topics we have no data on: {out_of_scope_claims(output, facts)}",
+              "contradiction": lambda: f"claims that contradict the data: {contradictions(output, facts)}"}
+    return f"Your previous answer was rejected - {detail[problem]()}. Rewrite it using only the facts."
+
+
 def grounding_problem(output, facts):
     """None if the output is grounded in the facts, else the reason it is not."""
     if ungrounded_numbers(output, facts):
@@ -247,22 +261,31 @@ async def call_agent(agent, payload, required, facts, metrics, timeout_s, retrie
     """
     Run an Agent Framework agent on a JSON task and validate the answer.
     Returns (data, None) on success or (None, reason) - callers then fall back to templates.
+    A grounding rejection is explained to the model on the retry, so it can correct itself.
     """
-    reason = "unknown"
+    reason, feedback = "unknown", None
     for _ in range(retries + 1):
         metrics.calls[agent.name] += 1
         t0 = time.perf_counter()
+        task = {**payload, "feedback": feedback} if feedback else payload
         try:
-            resp = await asyncio.wait_for(agent.run(json.dumps(payload, ensure_ascii=False)), timeout_s)
+            resp = await asyncio.wait_for(agent.run(json.dumps(task, ensure_ascii=False)), timeout_s)
             metrics.latency_s.append(time.perf_counter() - t0)
             data = parse_json(resp.text)
             missing = [k for k in required if k not in data]
             if missing:
                 reason = "missing_keys"
                 continue
-            problem = grounding_problem({k: data[k] for k in required}, facts)
+            answer = {k: data[k] for k in required}
+            problem = grounding_problem(answer, facts)
             if problem:
                 reason = problem
+                feedback = grounding_feedback(answer, facts, problem)
+                metrics.rejected.append({"agent": agent.name, "problem": problem, "why": feedback,
+                                         "text": " | ".join(s for s in _texts(answer, []) if s)})
+                if problem == "unknown_name":
+                    for w in unknown_names(answer, facts):
+                        metrics.rejected_names[w] += 1
                 continue
             return data, None
         except asyncio.TimeoutError:

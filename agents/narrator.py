@@ -17,6 +17,7 @@ Tasks (JSON input, JSON output only):
   key_moments: one short line per moment in facts.key_moments, in order.
   player_of_the_period: choose from facts.top_players only.
 Use ONLY numbers and names that appear in the input. Never invent facts.
+Sentence case everywhere, titles included: capitalise only the first word and names.
 We have no data on seasons, careers, injuries, transfers, crowds or past matches - never mention them."""
 
 DISPLAY = {"high": ("full_banner", 8), "medium": ("lower_third", 6), "low": ("side_panel", 5)}

@@ -14,6 +14,7 @@ Rules:
 - Mention only players and teams named in "facts". We have no data on seasons, careers, injuries,
   transfers, crowds or past matches - never mention them.
 - headline: at most 8 words. why: at most 2 short sentences.
+- Sentence case: capitalise only the first word and names ("Riverside take control", not "Riverside Take Control").
 - evidence: 1-3 items {"label": str, "value": number or str}, values copied from facts.
 - tag: one of goal, turning_point, chance, pressure, control, chaos, milestone, discipline, change.
 Reply with JSON only: {"headline": str, "why": str, "evidence": [...], "tag": str}"""

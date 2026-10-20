@@ -1,0 +1,29 @@
+log: logs\test_agents_foundry_match_001_2026-10-20_2356.txt
+match match_001: {'RIV': 4, 'NGR': 1}, club NGR, player focus RIV27
+
+== Full match (foundry) ==
+{"llm_calls": {"explainer": 37, "narrator": 33, "personalizer": 27}, "fallbacks": {"explainer:unknown_name": 14, "narrator:unknown_name": 4, "explainer:ungrounded": 1}, "llm_latency_p95_s": 4.651, "instant_latency_p95_ms": 6.13, "overlays": 160, "rejected_events": 0, "workflow_errors": 0}
+
+== Checks: pipeline ==
+  [PASS] 1. every alert became a moment the analyst sees  32/32
+  [PASS] 2. every important moment got an explanation (v2)  21/21
+  [FAIL] 3. explanations come from the LLM agents (no fallbacks)  llm 24%, fallbacks {'explainer:unknown_name': 14, 'narrator:unknown_name': 4, 'explainer:ungrounded': 1}
+  [PASS] 4. instant overlays p95 < 50 ms  6.13 ms
+  [PASS] 5. half-time and full-time recaps for every viewer  {'half_time': 3, 'full_time': 3}
+  [PASS] 6. every overlay matches the schema  160 overlays, 0 bad
+  [PASS] 7. LLM cost bounded (< 150 calls per match)  97 calls
+
+== Checks: personalization ==
+  [PASS] 8. fan sees fewer, bigger moments than analyst  fan 13 vs analyst 32, low-importance shown 0
+  [PASS] 9. Spanish viewer gets Spanish (v2) overlays  13 overlays
+  [PASS] 10. favourite-club highlight correct  4 highlighted
+  [PASS] 11. player focus (RIV27): all their moments + tracker every 5 min  7/7 moments, 20 trackers
+  [PASS] 12. single-metric ticker for metric viewers  {'fan_es_club': 20, 'focus_player': 20}
+
+== Checks: ingest ==
+  [PASS] 13. ingest agent rejects a replayed (duplicate) event  rejected 1
+
+== Checks: contradiction rules ==
+  [PASS] 21. contradictions caught, true claims pass  caught 6/6, false alarms 0 []
+
+13/14 checks passed -> FAIL

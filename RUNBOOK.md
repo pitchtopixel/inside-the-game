@@ -110,7 +110,7 @@ python test_agents.py --match match_002 --log # another match (profiles: away-cl
 python test_agents.py --show                  # + print sample overlays
 python test_agents.py --foundry --log         # real Foundry model (needs .env + az login; a few cents)
 ```
-**Expect:** run summary (LLM calls, fallbacks, latency, overlays), checks → `21/21 checks passed -> PASS`
+**Expect:** run summary (LLM calls, fallbacks, rejected names, latency, overlays), checks → `22/22 checks passed -> PASS` (mock)
 
 **Checks:**
 1. Every alert became a moment the analyst sees
@@ -129,8 +129,32 @@ python test_agents.py --foundry --log         # real Foundry model (needs .env +
 14–20. Model fails / returns bad JSON / invents numbers / invents names / makes out-of-scope claims /
 contradicts the data / is too slow → template fallback, nothing lost, no invented text on screen
 21. Contradiction rules: 6 wrong sentences caught, 5 true sentences pass (no false alarms)
+22. Name rules: invented names caught, known names and possessives ("Riverside's") pass
 
-**Last result (20 Oct, mock):** 21/21 PASS on match_001 and match_002 · logs: `logs/test_agents_mock_match_001_2026-10-20_0059.txt`, `logs/test_agents_mock_match_002_2026-10-20_0100.txt`
+**Last result (21 Oct, mock):** 22/22 PASS on match_001 and match_002 · logs: `logs/test_agents_mock_match_001_2026-10-21_0015.txt`, `logs/test_agents_mock_match_002_2026-10-21_0015.txt`
+
+### Foundry setup (done 20 Oct)
+1. Azure free trial ($200 credit, ~30 days). Never click "Upgrade to pay-as-you-go"; the spending limit stops charges at $200.
+2. Budget alerts: Cost Management → Budgets → `hackathon-budget`, ₹4,200 monthly, alerts at 20% (₹840) and 100%.
+3. Foundry project (ai.azure.com, New Foundry): `inside-the-game`, region East US 2, new resource group (delete it to remove everything), App Insights on.
+4. Model: `gpt-4.1-mini`, Global Standard (gpt-4o-mini is deprecated). Limits: 100 requests/min, 100k tokens/min.
+5. Azure CLI: `winget install -e --id Microsoft.AzureCLI`, then `az login` (new terminal; in an old VS Code terminal refresh PATH first:
+   `$env:Path = [Environment]::GetEnvironmentVariable("Path","Machine") + ";" + [Environment]::GetEnvironmentVariable("Path","User")`).
+6. `.env` (git-ignored, copy of `.env.example`): `FOUNDRY_PROJECT_ENDPOINT` = Project endpoint from the Foundry project home page, `FOUNDRY_MODEL=gpt-4.1-mini`. No API key: login via `az login`.
+
+**Foundry results (match_001)** - what we found and fixed: [docs/real_model_findings.md](docs/real_model_findings.md)
+
+| Run | Change | LLM explanations | Fallbacks | Calls | p95 latency | Log |
+|---|---|---|---|---|---|---|
+| 1 | first real run | 24% | 19 (18 unknown_name) | 97 | 4.7 s | `logs/test_agents_foundry_match_001_2026-10-20_2356.txt` |
+| 2 | possessives allowed | 62% | 10 (Title Case words) | 83 | 3.9 s | `logs/test_agents_foundry_match_001_2026-10-21_0000.txt` |
+| 3 | sentence case + feedback retry | **95%** | 1 (contradiction) | 72 | 3.5 s | `logs/test_agents_foundry_match_001_2026-10-21_0003.txt` |
+
+Check 3 with Foundry: ≥ 90% from the LLM (mock: 100%). Rejected answers are printed under "Rejected answers" with the reason and text.
+
+**Last result (21 Oct, Foundry):**
+- match_001: **15/15 PASS** - 100% LLM, 0 fallbacks, 71 calls, p95 3.1 s; 3 answers rejected then fixed by feedback · log: `logs/test_agents_foundry_match_001_2026-10-21_0015.txt`
+- match_002: **15/15 PASS** - 100% LLM, 0 fallbacks, 100 calls, p95 4.6 s; 2 answers rejected then fixed · log: `logs/test_agents_foundry_match_002_2026-10-21_0013.txt`
 
 ## 5. App (UI) — `app.py` + `static/`
 ```powershell

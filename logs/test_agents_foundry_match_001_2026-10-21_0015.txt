@@ -1,0 +1,40 @@
+log: logs\test_agents_foundry_match_001_2026-10-21_0015.txt
+match match_001: {'RIV': 4, 'NGR': 1}, club NGR, player focus RIV27
+
+== Full match (foundry) ==
+{"llm_calls": {"explainer": 21, "narrator": 25, "personalizer": 25}, "fallbacks": {}, "rejected_names": {}, "llm_latency_p95_s": 3.148, "instant_latency_p95_ms": 4.06, "overlays": 160, "rejected_events": 0, "workflow_errors": 0}
+
+== Rejected answers (3; retried with feedback, template shown if still rejected) ==
+  narrator [contradiction] Your previous answer was rejected - claims that contradict the data: ['the score is not level']. Rewrite it using only the facts.
+    text: line | 14:04 northgate surges with 69% threat share, pressing hard to equalize as momentum shifts despite trailing 1-0 in this chaotic encounter.
+  narrator [contradiction] Your previous answer was rejected - claims that contradict the data: ['Riverside are not on top']. Rewrite it using only the facts.
+    text: line | 21:00 Riverside dominate 2-0, but Northgate’s Sosa picks up a crucial yellow card, adding to their uphill battle under increasing pressure.
+  personalizer [contradiction] Your previous answer was rejected - claims that contradict the data: ['Riverside are not on top']. Rewrite it using only the facts.
+    text: headline | Arribas scores again to make it 2-0 | text | At 17:27, Arribas scores his second goal, giving Riverside a strong 2-0 lead early on. | why | Arribas’ early second goal puts Riverside in cont
+
+== Checks: pipeline ==
+  [PASS] 1. every alert became a moment the analyst sees  32/32
+  [PASS] 2. every important moment got an explanation (v2)  21/21
+  [PASS] 3. explanations come from the LLM agents (>= 90%, rest safe template fallbacks)  llm 100%, fallbacks {}
+  [PASS] 4. instant overlays p95 < 50 ms  4.06 ms
+  [PASS] 5. half-time and full-time recaps for every viewer  {'half_time': 3, 'full_time': 3}
+  [PASS] 6. every overlay matches the schema  160 overlays, 0 bad
+  [PASS] 7. LLM cost bounded (< 150 calls per match)  71 calls
+
+== Checks: personalization ==
+  [PASS] 8. fan sees fewer, bigger moments than analyst  fan 13 vs analyst 32, low-importance shown 0
+  [PASS] 9. Spanish viewer gets Spanish (v2) overlays  13 overlays
+  [PASS] 10. favourite-club highlight correct  4 highlighted
+  [PASS] 11. player focus (RIV27): all their moments + tracker every 5 min  7/7 moments, 20 trackers
+  [PASS] 12. single-metric ticker for metric viewers  {'fan_es_club': 20, 'focus_player': 20}
+
+== Checks: ingest ==
+  [PASS] 13. ingest agent rejects a replayed (duplicate) event  rejected 1
+
+== Checks: contradiction rules ==
+  [PASS] 21. contradictions caught, true claims pass  caught 6/6, false alarms 0 []
+
+== Checks: name rules ==
+  [PASS] 22. invented names caught, known names and possessives pass  caught 2/2, false alarms 0 []
+
+15/15 checks passed -> PASS
