@@ -171,6 +171,7 @@ function buildOverlay(o, slot) {
 }
 
 function showOverlay(pane, o) {
+  if (o.kind === 'metric_ticker' && pane.profile.player) return;   // player focus: the bar shows the player tracker
   if (o.kind === 'player_tracker' || o.kind === 'metric_ticker') {
     $('.ticker-label', pane.node).textContent = o.headline;
     $('.ticker-text', pane.node).textContent = o.text;
