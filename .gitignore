@@ -5,3 +5,8 @@ data/raw/
 __pycache__/
 .venv/
 .obsidian/
+
+# Local notes - not part of the repo
+CLAUDE.md
+challenge.md
+WALKTHROUGH.md
