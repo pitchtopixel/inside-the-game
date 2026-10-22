@@ -212,3 +212,35 @@ docker run --rm -p 8600:8600 inside-the-game          # mock model; open http://
 ```
 Image: python:3.13-slim, ~360 MB; contains the app, `static/`, `data/synthetic/`, `data/cache/` - never `.env`, logs or raw data.
 **Last result (22 Oct):** page served (HTTP 200), cache + matches present, no `.env` in the image
+
+## 7. Azure Container Apps (live demo)
+**URL:** https://inside-the-game.delightfulsand-21c23dc9.eastus2.azurecontainerapps.io/
+
+Set up once (22 Oct). `<rg>` = the Foundry resource group, `<foundry-resource>` = the Foundry account (both in the Azure portal):
+1. Image → GitHub Container Registry (private until the repo goes public):
+   ```powershell
+   docker build -t ghcr.io/pitchtopixel/inside-the-game:v1 .
+   docker login ghcr.io -u pitchtopixel                 # classic token with write:packages
+   docker push ghcr.io/pitchtopixel/inside-the-game:v1
+   ```
+2. Environment without Log Analytics (no log charges):
+   `az provider register -n Microsoft.App` · `az containerapp env create -n itg-env -g <rg> -l eastus2 --logs-destination none`
+3. App (token: classic, `read:packages` + `repo`; read it with `$t = (Get-Clipboard).Trim()` - pasting into a hidden prompt fails in VS Code):
+   ```powershell
+   az containerapp create -n inside-the-game -g <rg> --environment itg-env --image ghcr.io/pitchtopixel/inside-the-game:v1 `
+     --registry-server ghcr.io --registry-username pitchtopixel --registry-password $t --target-port 8600 --ingress external `
+     --cpu 0.5 --memory 1.0Gi --min-replicas 0 --max-replicas 1 --system-assigned `
+     --env-vars LLM_PROVIDER=foundry FOUNDRY_MODEL=gpt-4.1-mini "FOUNDRY_PROJECT_ENDPOINT=$ep"
+   ```
+4. Managed identity → role **Foundry User** (formerly "Azure AI User") on `<foundry-resource>`; no keys anywhere.
+   In Git Bash set `MSYS_NO_PATHCONV=1` first, or the `/subscriptions/...` scope is mangled.
+
+**Update after a code change:** rebuild + push a new tag (`:v2`), then
+`az containerapp update -n inside-the-game -g <rg> --image ghcr.io/pitchtopixel/inside-the-game:v2`.
+Rerun `prebake_cache.py` first if prompts, agents or matches changed.
+
+**Cost controls:** scale to zero (min 0 / max 1 replica, 0.5 vCPU / 1 GiB - inside the free monthly grant), no Log Analytics,
+GHCR instead of Azure Container Registry, preset viewers answered from the prebaked cache, max 5 viewers, idle replays closed after 10 min.
+
+**Last result (22 Oct):** page HTTP 200 in 0.9 s · presets (analyst + Spanish fan): **0 model calls**, 59 cache hits ·
+custom viewer (English fan): 15 Foundry calls via managed identity, 0 fallbacks
