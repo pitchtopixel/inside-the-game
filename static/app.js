@@ -208,7 +208,8 @@ function renderTimeline() {
 
 // ---------- connection ----------
 function connect() {
-  ws = new WebSocket(`ws://${location.host}/ws`);
+  ws = new WebSocket(`${location.protocol === 'https:' ? 'wss' : 'ws'}://${location.host}/ws`);
+  let retryMs = 1500;
   ws.onmessage = (msg) => {
     const m = JSON.parse(msg.data);
     switch (m.kind) {
@@ -236,9 +237,11 @@ function connect() {
         playing = m.playing; $('#playBtn').textContent = playing ? '⏸' : '▶';
         $('#speed').value = String(m.speed); break;
       case 'end': playing = false; $('#playBtn').textContent = '▶'; break;
+      case 'busy': $('#provider').textContent = `demo busy (${m.max} viewers) - retrying…`; retryMs = 15000; break;
+      case 'idle': $('#provider').textContent = `paused after ${m.minutes} min idle - reload the page to continue`; retryMs = 0; break;
     }
   };
-  ws.onclose = () => setTimeout(connect, 1500);
+  ws.onclose = () => { if (retryMs) setTimeout(connect, retryMs); };
 }
 
 $('#playBtn').onclick = () => send({ cmd: playing ? 'pause' : 'play' });

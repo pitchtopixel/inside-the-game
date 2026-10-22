@@ -2,8 +2,10 @@
 
 import asyncio
 import json
+import os
 import re
 import time
+import weakref
 from collections import defaultdict
 
 TEAM_FACT_KEYS = ("possession_pct", "shots", "shots_on_target", "xg", "pass_accuracy_pct", "final_third_passes",
@@ -21,11 +23,12 @@ class Metrics:
         self.rejected_names = defaultdict(int)  # word -> times an answer was rejected for it
         self.rejected = []  # every rejected answer: agent, problem, why, text (shown by test_agents.py)
         self.latency_s = []
+        self.cache_hits = 0  # answers reused from another viewer's replay (no model call)
 
     def summary(self):
         lat = sorted(self.latency_s)
         p95 = lat[int(0.95 * (len(lat) - 1))] if lat else 0.0
-        return {"llm_calls": dict(self.calls), "fallbacks": dict(self.fallbacks),
+        return {"llm_calls": dict(self.calls), "cache_hits": self.cache_hits, "fallbacks": dict(self.fallbacks),
                 "rejected_names": dict(self.rejected_names), "llm_latency_p95_s": round(p95, 3)}
 
 
@@ -257,12 +260,68 @@ def parse_json(text):
     return data
 
 
+# Checked answers, per model client: the same match gives the same facts, so every viewer of a replay
+# reuses the first viewer's answers. Keyed by the exact task; only answers that passed the checks are kept.
+ANSWER_CACHE = weakref.WeakKeyDictionary()  # client -> {task key: answer | in-flight future}
+CACHE_MAX = 5000
+
+
+def save_answer_cache(client, path, model):
+    """Write the client's checked answers to a JSON file (shipped with the app: preset viewers cost nothing)."""
+    entries = [[name, task, data] for (name, task), data in ANSWER_CACHE.get(client, {}).items()
+               if isinstance(data, dict)]
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    with open(path, "w", encoding="utf-8") as f:
+        json.dump({"model": model, "answers": entries}, f, ensure_ascii=False, indent=0)
+    return len(entries)
+
+
+def load_answer_cache(client, path, model):
+    """Preload answers saved for the same model. Returns how many were loaded (0 if none / other model)."""
+    if not os.path.exists(path):
+        return 0
+    with open(path, encoding="utf-8") as f:
+        saved = json.load(f)
+    if saved.get("model") != model:
+        return 0
+    cache = ANSWER_CACHE.setdefault(client, {})
+    for name, task, data in saved["answers"]:
+        cache[(name, task)] = data
+    return len(saved["answers"])
+
+
 async def call_agent(agent, payload, required, facts, metrics, timeout_s, retries=1):
     """
     Run an Agent Framework agent on a JSON task and validate the answer.
     Returns (data, None) on success or (None, reason) - callers then fall back to templates.
-    A grounding rejection is explained to the model on the retry, so it can correct itself.
+    Identical tasks are answered from the cache (or wait for the identical call already in flight).
     """
+    cache = ANSWER_CACHE.setdefault(agent.client, {})
+    key = (agent.name, json.dumps(payload, sort_keys=True, ensure_ascii=False))
+    hit = cache.get(key)
+    if hit is not None:
+        data = await asyncio.shield(hit) if isinstance(hit, asyncio.Future) else hit
+        if data is not None:
+            metrics.cache_hits += 1
+            return data, None
+    if len(cache) >= CACHE_MAX:
+        cache.clear()
+    pending = asyncio.get_running_loop().create_future()
+    cache[key] = pending
+    data, reason = None, "error"
+    try:
+        data, reason = await _call_model(agent, payload, required, facts, metrics, timeout_s, retries)
+    finally:
+        pending.set_result(data)
+        if data is None:
+            cache.pop(key, None)  # failed: the next viewer asks the model again
+        else:
+            cache[key] = data
+    return data, reason
+
+
+async def _call_model(agent, payload, required, facts, metrics, timeout_s, retries):
+    """One task, with a retry: a grounding rejection is explained to the model so it can correct itself."""
     reason, feedback = "unknown", None
     for _ in range(retries + 1):
         metrics.calls[agent.name] += 1

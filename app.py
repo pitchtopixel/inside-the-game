@@ -1,6 +1,6 @@
 """
 Match Intelligence app: replays a synthetic match through the multi-agent pipeline and pushes
-personalized overlays, live stats and key moments to every connected viewer.
+personalized overlays, live stats and key moments to the viewer. Each browser gets its own replay.
 
 Run:   python app.py --speed 20            ->  http://localhost:8600
        (LLM_PROVIDER in .env: mock by default; --mock-latency makes the template -> AI upgrade visible)
@@ -15,6 +15,8 @@ Server -> client (JSON "kind"):
   profiles    profile ids assigned to this viewer's panes
   reset       the replay jumped (seek / restart)
   end         match finished
+  busy        too many viewers at once (connection closed)
+  idle        no clicks for 10 min while paused (connection closed)
 Client -> server: play | pause | speed {value} | seek {minute} | restart | set_profiles {profiles: [...]}
 """
 
@@ -24,13 +26,13 @@ import bisect
 import json
 import os
 import time
-from contextlib import asynccontextmanager
 
 import uvicorn
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 
+from agents.common import load_answer_cache
 from agents.personalizer import LANGUAGES, PLAYER_METRICS, TEAM_METRICS
 from llm import get_chat_client
 from orchestrator import Orchestrator
@@ -38,6 +40,9 @@ from stream_server import validate
 
 TICK_S = 0.05
 SNAPSHOT_EVERY_S = 5.0
+MAX_SESSIONS = 5
+IDLE_S = 600                # close a replay after 10 min with no clicks while it is not playing
+ANSWER_CACHE_PATH = os.path.join("data", "cache", "answers.json")  # made by prebake_cache.py
 TIMELINE = {"profile_id": "_timeline", "mode": "analyst", "language": "en"}
 EVENT_KEYS = ("event_id", "type", "period", "clock", "elapsed_s", "team", "player_id", "player_name", "x", "y",
               "end_x", "end_y", "outcome")
@@ -50,6 +55,14 @@ SNAP_TEAM_KEYS = ("name", "goals", "possession_pct", "shots", "shots_on_target",
 
 def profile_id(p):
     return "p-" + "-".join(str(p.get(k) or "_") for k in ("mode", "language", "club", "player", "metric"))
+
+
+def make_profile(p):
+    """Viewer profile from the browser (or a preset), with defaults and its id."""
+    p = {k: p.get(k) or None for k in ("mode", "language", "club", "player", "metric")}
+    p["mode"], p["language"] = p["mode"] or "analyst", p["language"] or "en"
+    p["profile_id"] = profile_id(p)
+    return p
 
 
 class Session:
@@ -163,9 +176,7 @@ class Session:
         elif c == "set_profiles":
             ids = []
             for p in cmd.get("profiles", [])[:2]:
-                p = {k: p.get(k) or None for k in ("mode", "language", "club", "player", "metric")}
-                p["mode"], p["language"] = p["mode"] or "analyst", p["language"] or "en"
-                p["profile_id"] = profile_id(p)
+                p = make_profile(p)
                 if p["profile_id"] not in self.profiles:
                     self.profiles[p["profile_id"]] = p
                     self.orch.add_profile(p)
@@ -202,16 +213,10 @@ class Session:
                 await self.broadcast(self.status())
 
 
-def create_app(session, autoplay):
-    @asynccontextmanager
-    async def lifespan(app):
-        await session.reset_to(0)
-        session.playing = autoplay
-        task = asyncio.create_task(session.run())
-        yield
-        task.cancel()
-
-    app = FastAPI(title="Inside the Match", lifespan=lifespan)
+def create_app(new_session, autoplay, max_sessions=MAX_SESSIONS):
+    """Each browser connection gets its own replay, so viewers never control each other's match."""
+    sessions = set()
+    app = FastAPI(title="Inside the Match")
     app.mount("/static", StaticFiles(directory="static"), name="static")
 
     @app.get("/")
@@ -221,16 +226,38 @@ def create_app(session, autoplay):
     @app.websocket("/ws")
     async def ws(socket: WebSocket):
         await socket.accept()
-        session.viewers[socket] = []
-        await session.send(socket, session.meta_msg())
-        await session.send(socket, {"kind": "timeline", "items": session.timeline()})
-        await session.send(socket, session.snapshot_msg())
-        await session.send(socket, session.status())
+        if len(sessions) >= max_sessions:  # caps model cost on the public demo
+            await socket.send_text(json.dumps({"kind": "busy", "max": max_sessions}))
+            await socket.close()
+            return
+        session = new_session()
+        sessions.add(session)
+        task = None
         try:
+            await session.reset_to(0)
+            session.playing = autoplay
+            session.viewers[socket] = []
+            await session.send(socket, session.meta_msg())
+            await session.send(socket, {"kind": "timeline", "items": session.timeline()})
+            await session.send(socket, session.snapshot_msg())
+            await session.send(socket, session.status())
+            task = asyncio.create_task(session.run())
             while True:
-                await session.handle(socket, json.loads(await socket.receive_text()))
+                try:
+                    raw = await asyncio.wait_for(socket.receive_text(), IDLE_S)
+                except asyncio.TimeoutError:
+                    if session.playing:
+                        continue
+                    await session.send(socket, {"kind": "idle", "minutes": IDLE_S // 60})
+                    await socket.close()  # lets the container scale to zero when nobody is watching
+                    break
+                await session.handle(socket, json.loads(raw))
         except WebSocketDisconnect:
-            session.viewers.pop(socket, None)
+            pass
+        finally:
+            if task:
+                task.cancel()
+            sessions.discard(session)
 
     return app
 
@@ -240,12 +267,18 @@ def main():
     ap.add_argument("--match", default=os.path.join("data", "synthetic", "match_001.json"))
     ap.add_argument("--speed", type=float, default=20.0, help="1 = real time")
     ap.add_argument("--port", type=int, default=8600)
+    ap.add_argument("--host", default="127.0.0.1", help="0.0.0.0 inside a container")
     ap.add_argument("--autoplay", action="store_true")
+    ap.add_argument("--max-sessions", type=int, default=MAX_SESSIONS, help="viewers watching at the same time")
     ap.add_argument("--mock-latency", type=float, default=1.0,
                     help="mock model delay in seconds (shows the template -> AI upgrade); ignored for Foundry")
     args = ap.parse_args()
-    session = Session(args.match, args.speed, get_chat_client(latency_s=args.mock_latency))
-    uvicorn.run(create_app(session, args.autoplay), host="127.0.0.1", port=args.port, log_level="warning")
+    client = get_chat_client(latency_s=args.mock_latency)
+    if os.getenv("LLM_PROVIDER", "mock") == "foundry":
+        n = load_answer_cache(client, ANSWER_CACHE_PATH, os.getenv("FOUNDRY_MODEL"))
+        print(f"answer cache: {n} checked answers preloaded from {ANSWER_CACHE_PATH}")
+    app = create_app(lambda: Session(args.match, args.speed, client), args.autoplay, args.max_sessions)
+    uvicorn.run(app, host=args.host, port=args.port, log_level="warning")
 
 
 if __name__ == "__main__":

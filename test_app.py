@@ -32,45 +32,48 @@ def check(name, ok, detail=""):
     print(f"  [{'PASS' if ok else 'FAIL'}] {name}  {detail}")
 
 
-async def viewer(profile, inbox, ready):
+async def viewer(profile, inbox, seek, delay=0.0):
+    """One browser: its own replay, played at 600x; the analyst also seeks to 60' at the end."""
+    await asyncio.sleep(delay)
     async with websockets.connect(URL, max_size=None) as ws:
         await ws.send(json.dumps({"cmd": "set_profiles", "profiles": [profile]}))
-        ready.set()
-        try:
-            async for raw in ws:
-                inbox.append(json.loads(raw))
-        except websockets.ConnectionClosed:
-            pass
-
-
-async def controller(inboxes):
-    async with websockets.connect(URL, max_size=None) as ws:
         await ws.send(json.dumps({"cmd": "speed", "value": 600}))
-        await ws.send(json.dumps({"cmd": "restart"}))
         await asyncio.sleep(0.5)
-        for box in inboxes:
-            box.clear()                      # count from kick-off only
+        inbox.clear()                        # count from kick-off only
         await ws.send(json.dumps({"cmd": "play"}))
         t0 = time.time()
         async for raw in ws:
-            if json.loads(raw)["kind"] == "end" or time.time() - t0 > 60:
+            msg = json.loads(raw)
+            inbox.append(msg)
+            if msg["kind"] == "end" or time.time() - t0 > 60:
                 break
-        await asyncio.sleep(2.0)             # let background agents finish (recaps)
-        await ws.send(json.dumps({"cmd": "seek", "minute": 60}))
-        await asyncio.sleep(1.5)
+        end = time.time() + 2.0              # let background agents finish (recaps)
+        if seek:
+            await ws.send(json.dumps({"cmd": "seek", "minute": 60}))
+            end += 1.5
+        while time.time() < end:
+            try:
+                inbox.append(json.loads(await asyncio.wait_for(ws.recv(), end - time.time())))
+            except (asyncio.TimeoutError, websockets.ConnectionClosed):
+                break
 
 
 async def run():
-    a, f = [], []
-    ready_a, ready_f = asyncio.Event(), asyncio.Event()
-    tasks = [asyncio.create_task(viewer(ANALYST, a, ready_a)), asyncio.create_task(viewer(FAN, f, ready_f))]
-    await ready_a.wait()
-    await ready_f.wait()
-    await asyncio.sleep(0.3)
-    await controller([a, f])
-    for t in tasks:
-        t.cancel()
-    return a, f
+    a, f, b = [], [], []
+    await asyncio.gather(viewer(ANALYST, a, seek=True), viewer(FAN, f, seek=False))
+    await viewer(ANALYST, b, seek=False)     # a later judge: same match and profile -> answers from the cache
+    return a, f, b
+
+
+async def over_cap():
+    """Six browsers at once: the sixth is told the demo is busy."""
+    socks = [await websockets.connect(URL, max_size=None) for _ in range(6)]
+    try:
+        first = [json.loads(await s.recv())["kind"] for s in socks]
+    finally:
+        for s in socks:
+            await s.close()
+    return first
 
 
 def overlays(box):
@@ -98,7 +101,8 @@ def main():
                 break
             except Exception:
                 time.sleep(0.5)
-        a, f = asyncio.run(run())
+        a, f, b = asyncio.run(run())
+        first = asyncio.run(over_cap())
     finally:
         server.terminate()
 
@@ -138,6 +142,15 @@ def main():
                    tl["items"] and max(minute(o["clock"]) for o in tl["items"]) <= 60)
     check("10. seek to 60' rebuilds state and timeline", ok_seek,
           f"snapshot {snap and snap['clock']}, timeline {tl and len(tl['items'])} moments")
+    resets_f = sum(m["kind"] == "reset" for m in f)
+    check("11. each browser has its own replay (analyst's seek did not reach the fan)", resets and not resets_f,
+          f"analyst resets {len(resets)}, fan resets {resets_f}")
+    agents_b = next((m["agents"] for m in reversed(b) if m["kind"] == "snapshot"), {})
+    calls_b, hits_b = sum(agents_b.get("llm_calls", {}).values()), agents_b.get("cache_hits", 0)
+    check("12. a later viewer of the same match reuses cached answers (no new model calls)",
+          hits_b >= 15 and calls_b == 0, f"model calls {calls_b}, cache hits {hits_b}")
+    check("13. sixth browser at once is told the demo is busy", first.count("busy") == 1 and first[-1] == "busy",
+          str(first))
     print(f"\n{sum(results)}/{len(results)} checks passed -> {'PASS' if all(results) else 'FAIL'}")
     raise SystemExit(0 if all(results) else 1)
 

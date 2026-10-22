@@ -1,0 +1,41 @@
+log: logs\test_agents_mock_match_002_2026-10-22_1108.txt
+match match_002: {'HBC': 1, 'EVW': 4}, club EVW, player focus EVW38
+
+== Full match (mock) ==
+{"llm_calls": {"explainer": 29, "narrator": 31, "personalizer": 31}, "cache_hits": 0, "fallbacks": {}, "rejected_names": {}, "llm_latency_p95_s": 0.0, "instant_latency_p95_ms": 5.12, "overlays": 186, "rejected_events": 0, "workflow_errors": 0}
+
+== Checks: pipeline ==
+  [PASS] 1. every alert became a moment the analyst sees  36/36
+  [PASS] 2. every important moment got an explanation (v2)  29/29
+  [PASS] 3. explanations come from the LLM agents (no fallbacks)  llm 100%, fallbacks {}
+  [PASS] 4. instant overlays p95 < 50 ms  5.12 ms
+  [PASS] 5. half-time and full-time recaps for every viewer  {'half_time': 3, 'full_time': 3}
+  [PASS] 6. every overlay matches the schema  186 overlays, 0 bad
+  [PASS] 7. LLM cost bounded (< 150 calls per match)  91 calls
+
+== Checks: personalization ==
+  [PASS] 8. fan sees fewer, bigger moments than analyst  fan 15 vs analyst 36, low-importance shown 0
+  [PASS] 9. Spanish viewer gets Spanish (v2) overlays  15 overlays
+  [PASS] 10. favourite-club highlight correct  10 highlighted
+  [PASS] 11. player focus (EVW38): all their moments + tracker every 5 min  7/7 moments, 20 trackers
+  [PASS] 12. single-metric ticker for metric viewers  {'fan_es_club': 20, 'focus_player': 20}
+
+== Checks: ingest ==
+  [PASS] 13. ingest agent rejects a replayed (duplicate) event  rejected 1
+
+== Checks: failure recovery (first half, mock failure modes) ==
+  [PASS] 14. model 'fail' -> template fallback, nothing lost  v2 18/18, reasons ['error'], leaked 0
+  [PASS] 15. model 'bad_json' -> template fallback, nothing lost  v2 18/18, reasons ['bad_json'], leaked 0
+  [PASS] 16. model 'hallucinate' -> template fallback, nothing lost  v2 18/18, reasons ['ungrounded'], leaked 0
+  [PASS] 17. model 'wrong_name' -> template fallback, nothing lost  v2 18/18, reasons ['unknown_name'], leaked 0
+  [PASS] 18. model 'off_topic' -> template fallback, nothing lost  v2 18/18, reasons ['out_of_scope'], leaked 0
+  [PASS] 19. model 'contradict' -> template fallback, nothing lost  v2 18/18, reasons ['contradiction'], leaked 0
+  [PASS] 20. model 'slow' -> template fallback, nothing lost  v2 18/18, reasons ['timeout'], leaked 0
+
+== Checks: contradiction rules ==
+  [PASS] 21. contradictions caught, true claims pass  caught 6/6, false alarms 0 []
+
+== Checks: name rules ==
+  [PASS] 22. invented names caught, known names and possessives pass  caught 2/2, false alarms 0 []
+
+22/22 checks passed -> PASS
