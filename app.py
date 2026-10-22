@@ -221,6 +221,14 @@ def create_app(new_session, autoplay, max_sessions=MAX_SESSIONS):
     app = FastAPI(title="Inside the Match")
     app.mount("/static", StaticFiles(directory="static"), name="static")
 
+    @app.middleware("http")
+    async def no_cache(request, call_next):
+        """Browsers re-check the page, CSS and JS on every load (a cheap 304), so a new deploy is seen at once."""
+        resp = await call_next(request)
+        if request.url.path == "/" or request.url.path.startswith("/static/"):
+            resp.headers["Cache-Control"] = "no-cache"
+        return resp
+
     @app.get("/")
     def index():
         return FileResponse(os.path.join("static", "index.html"))
