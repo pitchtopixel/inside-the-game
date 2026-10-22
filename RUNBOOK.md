@@ -255,6 +255,6 @@ Rerun `prebake_cache.py` first if prompts, agents or matches changed.
 **Cost controls:** scale to zero (min 0 / max 1 replica, 0.5 vCPU / 1 GiB - inside the free monthly grant), no Log Analytics,
 GHCR instead of Azure Container Registry, preset viewers answered from the prebaked cache, max 5 viewers, idle replays closed after 10 min.
 
-**Last result (22 Oct, image v4 - adds no-cache headers so browsers always load the latest CSS/JS):** page HTTP 200 (0.8 s warm, ~22 s after scale-to-zero) · presets (analyst + English fan):
+**Last result (22 Oct, image v6 - no-cache headers; player-focus preset = most shots, e.g. Arribas):** player-focus preset 0 model calls, 53 cache hits · page HTTP 200 (0.8 s warm, ~22 s after scale-to-zero) · presets (analyst + English fan):
 **0 model calls**, 59 cache hits, 36 verified AI overlays, 4 recaps · custom viewer (English fan of Riverside): 16 Foundry calls
 via managed identity, 1 draft blocked & rewritten, 0 fallbacks

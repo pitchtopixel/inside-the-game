@@ -26,6 +26,7 @@ import bisect
 import json
 import os
 import time
+from collections import Counter
 
 import uvicorn
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
@@ -114,8 +115,10 @@ class Session:
                               for p in t["players"]]}
                  for side, t in self.meta["teams"].items()}
         home, away = teams["home"]["team_id"], teams["away"]["team_id"]
+        # Player-focus preset: the match's most involved attacker (most shots), so the demo has a story to follow
+        shots = Counter(e.get("player_id") for e in self.events if e["type"] == "shot")
         star = max(self.meta["teams"]["home"]["players"] + self.meta["teams"]["away"]["players"],
-                   key=lambda p: p["attributes"]["shot_skill"])
+                   key=lambda p: (shots[p["player_id"]], p["attributes"]["shot_skill"]))
         presets = [
             {"label": "Analyst · English", "profile": {"mode": "analyst", "language": "en"}},
             {"label": "Fan · English", "profile": {"mode": "fan", "language": "en"}},

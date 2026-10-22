@@ -94,7 +94,7 @@ class Personalizer:
         out = self.decorate(ov, prof, snap)
         if prof["mode"] == "analyst" and prof["language"] == "en":
             return out
-        key = (ov["overlay_id"], ov["version"], prof["mode"], prof["language"], prof["club"])
+        key = (ov["overlay_id"], ov["version"], prof["mode"], prof["language"], prof["club"], prof["player"])
         fields = {"headline": ov["headline"], "text": ov["text"], "why": ov.get("why") or ""}
         if key not in self.cache:
             payload = {"task": "personalize", "overlay": fields,

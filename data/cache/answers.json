@@ -3881,6 +3881,241 @@
 "text": "88:52 पर गोल! कोर्डेरो ने हेडर से स्कोर बढ़ाकर ईस्टवेल को 4-1 की बढ़त दिलाई।",
 "why": "कोर्डेरो का गोल हार्बरसाइड की वापसी की उम्मीदों को खत्म करता है। हार्बरसाइड समर्थकों के लिए मुश्किल पल।"
 }
+],
+[
+"personalizer",
+"{\"overlay\": {\"headline\": \"Arribas booked as Riverside dominate\", \"text\": \"59:21 - Arribas picks up a yellow, but Riverside’s dominance continues, controlling 62.7% possession and leading 4-0 with relentless pressure on Northgate.\", \"why\": \"The yellow card on Arribas adds to Riverside's discipline stats but doesn't slow their control in a 4-0 lead. Riverside's strong possession and threat share keep Northgate under pressure.\"}, \"profile\": {\"club_name\": null, \"language\": \"English\", \"language_code\": \"en\", \"mode\": \"fan\", \"player_name\": \"Arribas\"}, \"task\": \"personalize\"}",
+{
+"headline": "Arribas gets a yellow as Riverside stays strong",
+"text": "59:21 - Arribas booked, but Riverside leads 4-0 and keeps control with 63% possession.",
+"why": "Arribas’ yellow card doesn’t stop Riverside’s huge lead and pressure on Northgate."
+}
+],
+[
+"explainer",
+"{\"facts\": {\"clock\": \"34:00\", \"moment\": {\"category\": \"discipline\", \"data\": {\"card\": \"yellow\"}, \"opponent_name\": \"Harbourside\", \"player_name\": \"Bittencourt\", \"tags\": [], \"team_name\": \"Eastvale\", \"text\": \"Yellow card: Bittencourt (Eastvale)\", \"type\": \"card\"}, \"momentum\": {\"on_top\": null, \"threat_share_pct\": {\"Eastvale\": 5.3, \"Harbourside\": 94.7}}, \"period\": 1, \"player\": {\"assists\": 0, \"distance_km\": 3.59, \"goals\": 1, \"interceptions\": 2, \"name\": \"Bittencourt\", \"pass_accuracy_pct\": 100.0, \"passes\": 8, \"shots\": 2, \"sprints\": 2, \"tackles_won\": 2, \"top_speed_kmh\": 32.5, \"touches\": 19, \"xg\": 0.33}, \"rhythm\": {\"possession_share_pct\": {\"Eastvale\": 34.5, \"Harbourside\": 65.5}, \"state\": \"balanced\", \"turnovers_per_min\": 3.2}, \"score\": {\"Eastvale\": 1, \"Harbourside\": 1}, \"score_line\": \"Harbourside 1-1 Eastvale\", \"teams\": {\"Eastvale\": {\"corners\": 0, \"final_third_passes\": 13, \"fouls\": 6, \"pass_accuracy_pct\": 73.0, \"possession_pct\": 40.0, \"pressures\": 50, \"shots\": 3, \"shots_on_target\": 2, \"turnovers\": 44, \"xg\": 0.4}, \"Harbourside\": {\"corners\": 7, \"final_third_passes\": 35, \"fouls\": 2, \"pass_accuracy_pct\": 79.1, \"possession_pct\": 60.0, \"pressures\": 34, \"shots\": 7, \"shots_on_target\": 5, \"turnovers\": 44, \"xg\": 1.04}}, \"window_min\": 5}, \"task\": \"explain\"}",
+{
+"headline": "Eastvale's Bittencourt shown yellow card",
+"why": "This booking increases pressure on Eastvale who already trail in possession and threat share, potentially disrupting their discipline and momentum.",
+"evidence": [
+{
+"label": "Yellow card player",
+"value": "Bittencourt"
+},
+{
+"label": "Eastvale possession %",
+"value": 40.0
+},
+{
+"label": "Harbourside threat share %",
+"value": 94.7
+}
+],
+"tag": "discipline"
+}
+],
+[
+"narrator",
+"{\"explanation\": {\"evidence\": [{\"label\": \"Scoreline\", \"value\": \"Harbourside 1-2 Eastvale\"}, {\"label\": \"Possession pct Harbourside\", \"value\": 58.1}, {\"label\": \"Threat share Eastvale\", \"value\": 91.4}, {\"label\": \"Player card\", \"value\": \"Yellow card: Castelnau\"}], \"headline\": \"Yellow card raises Eastvale's challenge\", \"tag\": \"Discipline\", \"why\": \"Castelnau's booking heightens pressure on Eastvale trailing 2-1 with momentum heavily against them. Harbourside’s dominance in possession and chances means this discipline moment could shift control further.\"}, \"facts\": {\"clock\": \"51:15\", \"moment\": {\"category\": \"discipline\", \"data\": {\"card\": \"yellow\"}, \"opponent_name\": \"Harbourside\", \"player_name\": \"Castelnau\", \"tags\": [], \"team_name\": \"Eastvale\", \"text\": \"Yellow card: Castelnau (Eastvale)\", \"type\": \"card\"}, \"momentum\": {\"on_top\": \"Eastvale\", \"threat_share_pct\": {\"Eastvale\": 91.4, \"Harbourside\": 8.6}}, \"period\": 2, \"player\": {\"assists\": 0, \"distance_km\": 6.9, \"goals\": 0, \"interceptions\": 8, \"name\": \"Castelnau\", \"pass_accuracy_pct\": 78.0, \"passes\": 41, \"shots\": 0, \"sprints\": 0, \"tackles_won\": 3, \"top_speed_kmh\": 24.0, \"touches\": 64, \"xg\": 0.0}, \"rhythm\": {\"possession_share_pct\": {\"Eastvale\": 45.0, \"Harbourside\": 55.0}, \"state\": \"balanced\", \"turnovers_per_min\": 2.8}, \"score\": {\"Eastvale\": 2, \"Harbourside\": 1}, \"score_line\": \"Harbourside 1-2 Eastvale\", \"teams\": {\"Eastvale\": {\"corners\": 1, \"final_third_passes\": 48, \"fouls\": 10, \"pass_accuracy_pct\": 74.5, \"possession_pct\": 41.9, \"pressures\": 78, \"shots\": 10, \"shots_on_target\": 6, \"turnovers\": 77, \"xg\": 2.0}, \"Harbourside\": {\"corners\": 7, \"final_third_passes\": 44, \"fouls\": 2, \"pass_accuracy_pct\": 77.6, \"possession_pct\": 58.1, \"pressures\": 43, \"shots\": 8, \"shots_on_target\": 5, \"turnovers\": 76, \"xg\": 1.13}}, \"window_min\": 5}, \"task\": \"commentary\"}",
+{
+"line": "51:15 - yellow card for Castelnau adds pressure on Eastvale as Harbourside control possession and attack with 91% threat share."
+}
+],
+[
+"narrator",
+"{\"explanation\": {\"evidence\": [{\"label\": \"Yellow card player\", \"value\": \"Bittencourt\"}, {\"label\": \"Eastvale possession %\", \"value\": 40.0}, {\"label\": \"Harbourside threat share %\", \"value\": 94.7}], \"headline\": \"Eastvale's Bittencourt shown yellow card\", \"tag\": \"Discipline\", \"why\": \"This booking increases pressure on Eastvale who already trail in possession and threat share, potentially disrupting their discipline and momentum.\"}, \"facts\": {\"clock\": \"34:00\", \"moment\": {\"category\": \"discipline\", \"data\": {\"card\": \"yellow\"}, \"opponent_name\": \"Harbourside\", \"player_name\": \"Bittencourt\", \"tags\": [], \"team_name\": \"Eastvale\", \"text\": \"Yellow card: Bittencourt (Eastvale)\", \"type\": \"card\"}, \"momentum\": {\"on_top\": null, \"threat_share_pct\": {\"Eastvale\": 5.3, \"Harbourside\": 94.7}}, \"period\": 1, \"player\": {\"assists\": 0, \"distance_km\": 3.59, \"goals\": 1, \"interceptions\": 2, \"name\": \"Bittencourt\", \"pass_accuracy_pct\": 100.0, \"passes\": 8, \"shots\": 2, \"sprints\": 2, \"tackles_won\": 2, \"top_speed_kmh\": 32.5, \"touches\": 19, \"xg\": 0.33}, \"rhythm\": {\"possession_share_pct\": {\"Eastvale\": 34.5, \"Harbourside\": 65.5}, \"state\": \"balanced\", \"turnovers_per_min\": 3.2}, \"score\": {\"Eastvale\": 1, \"Harbourside\": 1}, \"score_line\": \"Harbourside 1-1 Eastvale\", \"teams\": {\"Eastvale\": {\"corners\": 0, \"final_third_passes\": 13, \"fouls\": 6, \"pass_accuracy_pct\": 73.0, \"possession_pct\": 40.0, \"pressures\": 50, \"shots\": 3, \"shots_on_target\": 2, \"turnovers\": 44, \"xg\": 0.4}, \"Harbourside\": {\"corners\": 7, \"final_third_passes\": 35, \"fouls\": 2, \"pass_accuracy_pct\": 79.1, \"possession_pct\": 60.0, \"pressures\": 34, \"shots\": 7, \"shots_on_target\": 5, \"turnovers\": 44, \"xg\": 1.04}}, \"window_min\": 5}, \"task\": \"commentary\"}",
+{
+"line": "34:00 - Bittencourt picks up a yellow card, adding pressure as Eastvale lags in possession and trails sharply in threat share."
+}
+],
+[
+"personalizer",
+"{\"overlay\": {\"headline\": \"Eastvale's Bittencourt shown yellow card\", \"text\": \"34:00 - Bittencourt picks up a yellow card, adding pressure as Eastvale lags in possession and trails sharply in threat share.\", \"why\": \"This booking increases pressure on Eastvale who already trail in possession and threat share, potentially disrupting their discipline and momentum.\"}, \"profile\": {\"club_name\": null, \"language\": \"English\", \"language_code\": \"en\", \"mode\": \"fan\", \"player_name\": \"Bittencourt\"}, \"task\": \"personalize\"}",
+{
+"headline": "Bittencourt gets a yellow card",
+"text": "At 34 minutes, Bittencourt's yellow adds pressure as Eastvale struggles with ball and chances.",
+"why": "The booking makes it tougher for Eastvale, hurting their flow and focus."
+}
+],
+[
+"personalizer",
+"{\"overlay\": {\"headline\": \"Arribas breaks deadlock early\", \"text\": \"02:26 - Arribas breaks the deadlock with a powerful left-footed strike, giving Riverside an early 1-0 lead and control with 71% possession.\", \"why\": \"Riverside's goal sets an early advantage and forces Northgate to respond while Riverside maintains control with 71% possession.\"}, \"profile\": {\"club_name\": null, \"language\": \"English\", \"language_code\": \"en\", \"mode\": \"fan\", \"player_name\": \"Arribas\"}, \"task\": \"personalize\"}",
+{
+"headline": "Arribas scores early for Riverside",
+"text": "At 2:26, Arribas puts Riverside ahead 1-0 with a strong left-foot shot.",
+"why": "Riverside leads early and has most of the ball, so Northgate needs to catch up."
+}
+],
+[
+"personalizer",
+"{\"overlay\": {\"headline\": \"Riverside maintains strong attacking presence\", \"text\": \"09:03 Riverside leads 1-0 and keeps pressing hard; Arribas just missed a big chance, showing their relentless attacking dominance.\", \"why\": \"After scoring early, Riverside continues to dominate possession and create chances, keeping pressure on Northgate. Arribas’s big chance shows Riverside's sustained threat despite the miss.\"}, \"profile\": {\"club_name\": null, \"language\": \"English\", \"language_code\": \"en\", \"mode\": \"fan\", \"player_name\": \"Arribas\"}, \"task\": \"personalize\"}",
+{
+"headline": "Riverside keeps up the attack",
+"text": "09:03 Riverside leads 1-0 and pushes hard. Arribas nearly scored, showing great effort!",
+"why": "Riverside scored early and keeps the pressure on Northgate, with Arribas's chance showing their threat."
+}
+],
+[
+"personalizer",
+"{\"overlay\": {\"headline\": \"Arribas doubles lead for Riverside\", \"text\": \"17:27 GOAL! Arribas fires a blazing right-foot shot at 92.6 km/h, doubling Riverside's lead to 2-0 over Northgate!\", \"why\": \"The 2-0 lead gives Riverside crucial control despite Northgate's momentum. Arribas' brace increases pressure on Northgate, shifting the game's balance.\"}, \"profile\": {\"club_name\": null, \"language\": \"English\", \"language_code\": \"en\", \"mode\": \"fan\", \"player_name\": \"Arribas\"}, \"task\": \"personalize\"}",
+{
+"headline": "Arribas scores again to make it 2-0",
+"text": "17:27 GOAL! Arribas shoots fast and doubles the lead to 2-0 for Riverside!",
+"why": "Riverside now holds control with a 2-0 lead, putting pressure on Northgate."
+}
+],
+[
+"personalizer",
+"{\"overlay\": {\"headline\": \"Arribas hat-trick puts Riverside ahead\", \"text\": \"35:29 - Arribas completes his hat-trick! Riverside surge to a commanding 3-0 lead over Northgate, putting huge pressure on their opponents.\", \"why\": \"With a 3-0 lead, Riverside significantly increases pressure on Northgate despite balanced rhythm. Arribas' third goal marks a milestone that shapes the game's control dynamic.\"}, \"profile\": {\"club_name\": null, \"language\": \"English\", \"language_code\": \"en\", \"mode\": \"fan\", \"player_name\": \"Arribas\"}, \"task\": \"personalize\"}",
+{
+"headline": "Arribas hat-trick gives Riverside lead",
+"text": "Arribas scores his third goal at 35:29! Riverside now lead 3-0, putting Northgate under big pressure.",
+"why": "Riverside's 3-0 lead makes life tough for Northgate. Arribas' third goal really changes the game's flow."
+}
+],
+[
+"personalizer",
+"{\"overlay\": {\"headline\": \"Riverside dominant in the first half with Arribas hat-trick\", \"text\": \"Riverside controlled the first half, maintaining 60% possession and creating more quality chances. Arribas was the standout striker, netting a hat-trick to put Riverside in a commanding 3-0 lead. Momentum shifted multiple times, with Riverside dominant early and late, while Northgate showed periods of attacking threat in the middle. Riverside’s precision passing and clinical finishing ultimately decided the half.\", \"why\": \"\"}, \"profile\": {\"club_name\": null, \"language\": \"English\", \"language_code\": \"en\", \"mode\": \"fan\", \"player_name\": \"Arribas\"}, \"task\": \"personalize\"}",
+{
+"headline": "Arribas shines with a hat-trick as Riverside leads 3-0",
+"text": "Riverside owned the half with great chances and 60% possession. Arribas scored three times, giving them a strong lead.",
+"why": ""
+}
+],
+[
+"personalizer",
+"{\"overlay\": {\"headline\": \"Arribas secures Riverside's 4-0 lead\", \"text\": \"56:26 Arribas heads home his fourth to extend Riverside's dominant 4-0 lead, silencing Northgate despite their recent attacking pressure.\", \"why\": \"This goal extends Riverside's commanding lead, increasing pressure on Northgate despite their momentum. Riverside's efficient finishing contrasts with Northgate's dominance in threat share and possession.\"}, \"profile\": {\"club_name\": null, \"language\": \"English\", \"language_code\": \"en\", \"mode\": \"fan\", \"player_name\": \"Arribas\"}, \"task\": \"personalize\"}",
+{
+"headline": "Arribas makes it 4-0 for Riverside",
+"text": "56:26 Arribas scores his fourth, stretching Riverside's lead to 4-0 and quieting Northgate's attacks.",
+"why": "This goal puts Riverside further ahead, making it hard for Northgate to come back."
+}
+],
+[
+"personalizer",
+"{\"overlay\": {\"headline\": \"Sosa's late goal sparks Northgate hope\", \"text\": \"88:02 - Sosa cracks a low-xG shot for Northgate, breaking Riverside's momentum with a late goal making it 4-1.\", \"why\": \"Despite Riverside's dominance, Sosa's low-xG goal breaks the momentum. It offers Northgate a morale boost with minutes remaining.\"}, \"profile\": {\"club_name\": null, \"language\": \"English\", \"language_code\": \"en\", \"mode\": \"fan\", \"player_name\": \"Arribas\"}, \"task\": \"personalize\"}",
+{
+"headline": "Sosa scores late, lifting Northgate spirits",
+"text": "At 88 minutes, Sosa scores a surprise goal, making it 4-1 for Northgate, slowing Riverside down.",
+"why": "Even though Riverside played well, Sosa's goal cheers Northgate as time runs out."
+}
+],
+[
+"personalizer",
+"{\"overlay\": {\"headline\": \"Riverside dominate with Arribas' four-goal masterclass\", \"text\": \"Riverside controlled possession and created far more chances, translating their superiority into a dominant 4-1 victory. The momentum swung multiple times early on, but Riverside pulled away decisively in the second half. Arribas was unstoppable, scoring a hat-trick by the 35th minute and adding a fourth goal after halftime. Northgate fought back late with a consolation goal from Sosa.\", \"why\": \"\"}, \"profile\": {\"club_name\": null, \"language\": \"English\", \"language_code\": \"en\", \"mode\": \"fan\", \"player_name\": \"Arribas\"}, \"task\": \"personalize\"}",
+{
+"headline": "Arribas shines with four goals as Riverside wins 4-1",
+"text": "Riverside took control early and never looked back. Arribas scored three goals by the 35th minute and added one more after halftime. Northgate scored late but it was too late.",
+"why": ""
+}
+],
+[
+"personalizer",
+"{\"overlay\": {\"headline\": \"Eastvale equalizes against dominant Harbourside\", \"text\": \"27:44 Bittencourt’s left-foot strike equalizes for Eastvale, halting Harbourside’s dominance and shifting momentum in a thrilling 1-1 battle.\", \"why\": \"Bittencourt's goal levels the scoreline at 1-1 despite Harbourside's strong control and possession. This stop Harbourside's momentum and injects new pressure into the game.\"}, \"profile\": {\"club_name\": null, \"language\": \"English\", \"language_code\": \"en\", \"mode\": \"fan\", \"player_name\": \"Bittencourt\"}, \"task\": \"personalize\"}",
+{
+"headline": "Bittencourt brings Eastvale back level",
+"text": "At 27:44, Bittencourt’s shot makes it 1-1, stopping Harbourside’s run and exciting the fans.",
+"why": "His goal halts Harbourside’s momentum and puts fresh pressure on them."
+}
+],
+[
+"personalizer",
+"{\"overlay\": {\"headline\": \"Harbourside hits post on big chance\", \"text\": \"30:10 - Brayford's powerful strike rattles the post! Harbourside stays level at 1-1 but Eastvale's momentum keeps the pressure high.\", \"why\": \"Brayford's near goal keeps match finely balanced at 1-1, despite Eastvale's momentum. This miss maintains pressure on Harbourside to capitalize soon.\"}, \"profile\": {\"club_name\": null, \"language\": \"English\", \"language_code\": \"en\", \"mode\": \"fan\", \"player_name\": \"Bittencourt\"}, \"task\": \"personalize\"}",
+{
+"headline": "Harbourside hits post on big chance",
+"text": "Brayford’s shot hits the post! Score stays 1-1, but Eastvale is still pushing hard.",
+"why": "That close miss keeps the game tight at 1-1, so Harbourside must act fast."
+}
+],
+[
+"personalizer",
+"{\"overlay\": {\"headline\": \"Eastvale's big chance keeps score tight\", \"text\": \"35:18 - Bittencourt's fierce header saved, Eastvale keeps hopes alive despite Harbourside's dominant 60.7% possession and 87.3% threat share.\", \"why\": \"Bittencourt's saved header was a key moment as Eastvale struggles for control despite limited possession. Harbourside dominates possession and threat but Eastvale's chance maintains pressure and momentum balance.\"}, \"profile\": {\"club_name\": null, \"language\": \"English\", \"language_code\": \"en\", \"mode\": \"fan\", \"player_name\": \"Bittencourt\"}, \"task\": \"personalize\"}",
+{
+"headline": "Bittencourt's big chance keeps the game close",
+"text": "At 35:18, Bittencourt's strong header was saved, but Eastvale stays in the fight.",
+"why": "Bittencourt's chance was crucial as Eastvale fights hard despite less possession."
+}
+],
+[
+"personalizer",
+"{\"overlay\": {\"headline\": \"Bittencourt's post shot keeps score tight\", \"text\": \"38:55 - Bittencourt fires a thunderous shot off the post! Eastvale keeps the score tight at 1-1 despite Harbourside's dominance.\", \"why\": \"Eastvale's big chance maintains the 1-1 deadlock and heightens pressure on Harbourside despite their control. This moment underscores Eastvale's threat despite lower possession and balance in rhythm.\"}, \"profile\": {\"club_name\": null, \"language\": \"English\", \"language_code\": \"en\", \"mode\": \"fan\", \"player_name\": \"Bittencourt\"}, \"task\": \"personalize\"}",
+{
+"headline": "Bittencourt's shot hits the post!",
+"text": "At 38:55, Bittencourt nearly scored, keeping it 1-1 in a tough game.",
+"why": "Eastvale's big chance keeps the score level and puts pressure on Harbourside."
+}
+],
+[
+"personalizer",
+"{\"overlay\": {\"headline\": \"Bittencourt's brace turns the tide\", \"text\": \"45+2:06 - Bittencourt's second goal puts Eastvale ahead 2-1, shifting full momentum despite lower possession—a crucial turning point in the first half!\", \"why\": \"Eastvale take the lead with Bittencourt's second goal, gaining momentum despite less possession. This goal marks a key turning point keeping Eastvale on top in threat share and control.\"}, \"profile\": {\"club_name\": null, \"language\": \"English\", \"language_code\": \"en\", \"mode\": \"fan\", \"player_name\": \"Bittencourt\"}, \"task\": \"personalize\"}",
+{
+"headline": "Bittencourt scores twice to lead",
+"text": "Bittencourt's second goal puts Eastvale ahead 2-1 just before halftime, changing the game!",
+"why": "Eastvale take the lead with Bittencourt's second goal, boosting their momentum despite less possession."
+}
+],
+[
+"personalizer",
+"{\"overlay\": {\"headline\": \"Eastvale's resilient fightback secures first-half lead\", \"text\": \"Harbourside dominated early with 59.2% possession and clear chances, taking an early lead. However, Eastvale's defensive resilience and increased attacking threat turned the game, especially in the last 15 minutes. Bittencourt's two goals and precise passing propelled Eastvale ahead despite Harbourside's numerical dominance in possession and corners. The momentum shifted multiple times, but Eastvale finished strong and ahead at halftime.\", \"why\": \"\"}, \"profile\": {\"club_name\": null, \"language\": \"English\", \"language_code\": \"en\", \"mode\": \"fan\", \"player_name\": \"Bittencourt\"}, \"task\": \"personalize\"}",
+{
+"headline": "Eastvale fights back to lead at half",
+"text": "Harbourside had most of the ball early on, but Bittencourt scored twice to give Eastvale the lead. Exciting last 15 minutes!",
+"why": ""
+}
+],
+[
+"personalizer",
+"{\"overlay\": {\"headline\": \"Eastvale maintains high pressure with big chance\", \"text\": \"69:59 - Eastvale's relentless pressure pays off with Bittencourt's big chance saved, keeping Harbourside on the back foot despite possession dominance.\", \"why\": \"Eastvale's dominance in threat share at 92.1% and high pressure of 97 keeps Harbourside under constant attack despite trailing in possession. Bittencourt's saved big chance indicates Eastvale's continuous offensive pressure that could extend their lead.\"}, \"profile\": {\"club_name\": null, \"language\": \"English\", \"language_code\": \"en\", \"mode\": \"fan\", \"player_name\": \"Bittencourt\"}, \"task\": \"personalize\"}",
+{
+"headline": "Eastvale keeps up strong pressure with Bittencourt's big chance",
+"text": "At 69:59, Bittencourt had a great chance saved as Eastvale presses hard, making Harbourside struggle despite their possession.",
+"why": "Eastvale’s pressure is intense, with 92.1% threat share and 97 pressure level, pushing Harbourside back even without the ball."
+}
+],
+[
+"personalizer",
+"{\"overlay\": {\"headline\": \"Sampaio's goal puts Eastvale in firm control\", \"text\": \"77:35 - Goal! Sampaio heads in to make it 3-1; Eastvale dominates with 91% attack threat, sealing control late in this intense battle.\", \"why\": \"With Eastvale leading 3-1 and holding 91.4% threat share, this goal strengthens their momentum and pressure over Harbourside late in the match.\"}, \"profile\": {\"club_name\": null, \"language\": \"English\", \"language_code\": \"en\", \"mode\": \"fan\", \"player_name\": \"Bittencourt\"}, \"task\": \"personalize\"}",
+{
+"headline": "Sampaio's goal puts Eastvale ahead 3-1",
+"text": "77:35 - Goal! Sampaio scores to give Eastvale strong control now.",
+"why": "Eastvale's lead and attack power keep pressure on Harbourside late in the match."
+}
+],
+[
+"personalizer",
+"{\"overlay\": {\"headline\": \"Harbourside seizes late momentum shift\", \"text\": \"82:48 Harbourside surges with 94% threat in last 5 minutes, pressing hard to overturn the 1-3 deficit against Eastvale!\", \"why\": \"Despite trailing 1-3, Harbourside dominates threat with 94% in last 5 minutes, signaling a potential comeback.\"}, \"profile\": {\"club_name\": null, \"language\": \"English\", \"language_code\": \"en\", \"mode\": \"fan\", \"player_name\": \"Bittencourt\"}, \"task\": \"personalize\"}",
+{
+"headline": "Harbourside fights back late",
+"text": "At 82:48, Harbourside pushes hard, nearly turning the 1-3 score around!",
+"why": "They held 94% threat in last minutes, showing real hope for a comeback."
+}
+],
+[
+"personalizer",
+"{\"overlay\": {\"headline\": \"Eastvale extend lead with late goal\", \"text\": \"88:52 GOAL! Cordeiro heads home to extend Eastvale's lead to 4-1, sealing their dominance late in this exciting contest.\", \"why\": \"Cordeiro's goal at 88:52 seals Eastvale's dominant 4-1 win, reinforcing their control despite Harbourside's higher possession. This late finish kills Harbourside's chance for a comeback and confirms Eastvale's momentum.\"}, \"profile\": {\"club_name\": null, \"language\": \"English\", \"language_code\": \"en\", \"mode\": \"fan\", \"player_name\": \"Bittencourt\"}, \"task\": \"personalize\"}",
+{
+"headline": "Eastvale score late to lead 4-1",
+"text": "88:52 GOAL! Cordeiro heads one in to make it 4-1 and seal the win.",
+"why": "Cordeiro's late goal ends Harbourside's hopes and shows Eastvale's strong hold."
+}
+],
+[
+"personalizer",
+"{\"overlay\": {\"headline\": \"Eastvale seizes late momentum shift\", \"text\": \"90+0:58 - Eastvale surges with 81% threat share, sealing a commanding 4-1 victory despite trailing possession late on.\", \"why\": \"Eastvale dominates threat with 81% share in final minutes despite trailing possession. This surge secures their control and likely seals the 4-1 victory. \"}, \"profile\": {\"club_name\": null, \"language\": \"English\", \"language_code\": \"en\", \"mode\": \"fan\", \"player_name\": \"Bittencourt\"}, \"task\": \"personalize\"}",
+{
+"headline": "Eastvale takes charge at the end",
+"text": "Eastvale shines late with 81% threat, winning 4-1 despite less possession.",
+"why": "They fought back strongly at the end to keep the win safe."
+}
+],
+[
+"personalizer",
+"{\"overlay\": {\"headline\": \"Eastvale dominates second half for commanding win\", \"text\": \"Eastvale turned the game around after conceding an early goal, outshooting Harbourside and controlling the attack in the second half. Though Harbourside led the opening 30 minutes with strong attacking threat, Eastvale gained momentum from midway through the first half and never lost it again. Key saves and posts tested both goalkeepers, but Eastvale's clinical finishing secured the 4-1 victory. The momentum notably shifted to Eastvale from the 30th minute onward and they kept the pressure high until full time.\", \"why\": \"\"}, \"profile\": {\"club_name\": null, \"language\": \"English\", \"language_code\": \"en\", \"mode\": \"fan\", \"player_name\": \"Bittencourt\"}, \"task\": \"personalize\"}",
+{
+"headline": "Eastvale fights back to win 4-1",
+"text": "Eastvale scored 4 goals after a slow start, outshooting Harbourside in the second half.",
+"why": "Great second half and sharp finishing from Eastvale sealed the win."
+}
 ]
 ]
 }
