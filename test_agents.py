@@ -1,7 +1,7 @@
 """
 Test the multi-agent pipeline end to end (mock model by default - no Azure cost).
 
-    python test_agents.py                 full match, 3 viewer profiles, + failure-mode runs
+    python test_agents.py                 full match, 3 viewer profiles, + failure-mode runs, + 6 option combinations
     python test_agents.py --foundry       same checks against the real Foundry model (costs a few cents)
     add --match match_002 for another match, --log to save output to logs/, --show to print sample overlays
 """
@@ -198,6 +198,71 @@ def name_rules():
     want = {"title": "Riverside dominate with Arribas' four goals",
             "summary": "Northgate fought back. Big chances and momentum stay lower case."}
     check("23. lower-cased names get their capitals back (other words untouched)", got == want, str(got))
+    # A real model transliterated names into Arabic and even translated "Northgate" ("north gate")
+    from agents.common import headline_names, missing_names
+    keep = headline_names({"headline": "Arribas scores for Riverside"}, {"score": {"Riverside": 1, "Northgate": 0},
+                                                                         "player": {"name": "Iker Arribas"}})
+    caught = missing_names({"headline": "هدف مبكر من أريباس يمنح ريفرسايد التقدم"}, keep)
+    passed = missing_names({"headline": "هدف مبكر من Arribas يمنح Riverside التقدم"}, keep)
+    check("24. Arabic / Hindi answers must keep names in Latin letters", keep == ["Arribas", "Riverside"]
+          and caught == keep and not passed, f"must keep {keep}, transliterated caught {caught}, Latin kept ok {not passed}")
+
+
+def combo_profiles(data):
+    """Six viewers that together use every option value at least once (+ an English analyst as reference)."""
+    home, away = data["teams"]["home"], data["teams"]["away"]
+
+    def pick(team, roles):
+        return next(p["player_id"] for r in roles for p in team["players"] if p["position"] == r)
+    return [
+        {"profile_id": "ref_analyst", "mode": "analyst", "language": "en"},
+        {"profile_id": "c1_analyst_fr_home", "mode": "analyst", "language": "fr", "club": home["team_id"], "metric": "shots"},
+        {"profile_id": "c2_fan_pt_striker", "mode": "fan", "language": "pt", "player": pick(away, ["ST"]), "metric": "top_speed"},
+        {"profile_id": "c3_fan_ar_away", "mode": "fan", "language": "ar", "club": away["team_id"], "metric": "pass_accuracy"},
+        {"profile_id": "c4_analyst_es_mid", "mode": "analyst", "language": "es", "player": pick(home, ["CM", "DM"]),
+         "metric": "distance"},
+        {"profile_id": "c5_fan_hi", "mode": "fan", "language": "hi", "metric": "pressures"},
+        {"profile_id": "c6_analyst_en_away", "mode": "analyst", "language": "en", "club": away["team_id"],
+         "player": pick(home, ["LW", "RW"]), "metric": "pass_accuracy_player"},
+    ]
+
+
+async def combo_run(data, client):
+    """Every option value (mode, 6 languages, clubs, player focus, 8 metrics) works - not just the presets."""
+    profiles = combo_profiles(data)
+    orch = Orchestrator({"match": data["match"], "teams": data["teams"]}, profiles, client=client)
+    for ev in data["events"]:
+        await orch.process(ev)
+    await orch.drain()
+    ref = [o for o in latest(orch, "ref_analyst") if o["kind"] == "moment"]
+    print("\n== Checks: option combinations ==")
+    print(f"  {'viewer':22} moments  v2  lang  club  metric  player  recaps")
+    problems, samples = [], []
+    for p in profiles[1:]:
+        mine = latest(orch, p["profile_id"])
+        moments = [o for o in mine if o["kind"] == "moment"]
+        v2 = [o for o in moments if o["version"] == 2]
+        lang_ok = all(o["language"] == p["language"] for o in v2 if o["source"] != "fallback")
+        club = p.get("club")
+        club_ok = not club or (any(o["highlight"]["your_club"] for o in moments)
+                               and all(o["highlight"]["your_club"] == (o["team"] == club) for o in moments))
+        metric_ok = all(o.get("metric") and o["metric"]["values"] for o in moments)
+        player = p.get("player")
+        theirs = {o["moment_id"] for o in ref if o.get("player_id") == player}
+        player_ok = not player or theirs <= {o["moment_id"] for o in moments}
+        recaps = sorted(o["recap_type"] for o in mine if o["kind"] == "recap")
+        row = [bool(moments), bool(v2), lang_ok, club_ok, metric_ok, player_ok, recaps == ["full_time", "half_time"]]
+        print(f"  {p['profile_id']:22} {len(moments):7} {len(v2):3}  " + "  ".join(
+            f"{'ok' if x else 'NO':>4}" for x in row[2:]))
+        if not all(row):
+            problems.append(p["profile_id"])
+        if p["language"] != "en" and v2:
+            samples.append((p["language"], v2[0]["clock"], v2[0]["headline"], v2[0]["text"]))
+    check("25. every option value works (6 combination viewers: languages, clubs, players, metrics)", not problems,
+          f"problems: {problems}" if problems else f"{sum(orch.summary()['llm_calls'].values())} LLM calls")
+    print("\n  Sample captions (read for language quality):")
+    for lang, clock, h, t in samples:
+        print(f"  [{lang}] {clock} {h} | {t}")
 
 
 async def amain(args):
@@ -210,6 +275,7 @@ async def amain(args):
         await failure_runs(data)
     contradiction_rules()
     name_rules()
+    await combo_run(data, client)
     print(f"\n{sum(results)}/{len(results)} checks passed -> {'PASS' if all(results) else 'FAIL'}")
     return all(results)
 

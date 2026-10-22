@@ -61,9 +61,25 @@ Every rejected answer is now printed by `test_agents.py` with the reason and the
 
 On match_002, "El" (Spanish article) and "Scorer" (Title Case) were rejected, then fixed on retry.
 
+## Finding 4: Translations changed the names (22 Oct)
+- **How we found it:** a new test (check 25) runs six extra viewers so that every option value is used at least once:
+  French, Portuguese, Arabic, Spanish, Hindi, both clubs, player focus (including a substitute) and all 8 metrics.
+- **Problem:** the Arabic caption transliterated "Arribas" (أريباس) and *translated* "Northgate" into "north gate" (شمالجيت);
+  Hindi transliterated both. The name check could not see it - it works on Latin capital letters.
+- **Fix:** a prompt rule (names stay in Latin letters in every language) and a new check: every name in the original headline
+  must appear unchanged in an Arabic / Hindi answer, otherwise the draft is sent back with that reason (check 24).
+  The cache key now includes a fingerprint of each agent's instructions, so old answers are never reused after a prompt change.
+- **Result:** "هدف! **Arribas** يسجل … ويمنح **Riverside** التقدم 1-0". In the prebake one Hindi draft still renamed a player after
+  the retry - it was not shown; the checked English template was.
+- **Same test, other find:** a player metric (e.g. distance) showed nothing until the player appeared in the stats (a substitute
+  on the bench). It now shows the name with a dash.
+
 ## What is left
 - The "to equalize" false alarm: the level-score rule should ignore "to equalise / equalize" (an aim). It is harmless today, because the retry fixed it.
 - Rules are English-only. Translated text ("El") can trip the name check; the retry covers it.
+- **A translation can flip a fact the checks cannot read:** in one Hindi caption the left-foot goal became "दाहिने पैर से"
+  (right foot), while the French, Spanish, Portuguese and Arabic captions kept "left". Numbers and names are checked in every
+  language; meaning is checked in English only. Possible next step: back-translate and re-check (doubles the calls).
 - Watch: one rejected draft wrote the team name in lower case ("northgate surges"), possibly from over-applying the sentence-case rule. It was not shown on screen; keep an eye on it in the UI.
 
 ## Talking points for judges

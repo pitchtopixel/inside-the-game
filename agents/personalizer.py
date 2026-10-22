@@ -11,7 +11,7 @@ import asyncio
 
 from agent_framework import Agent
 
-from agents.common import call_agent, verification
+from agents.common import call_agent, headline_names, verification
 
 LANGUAGES = {"en": "English", "es": "Spanish", "fr": "French", "pt": "Portuguese", "hi": "Hindi", "ar": "Arabic"}
 TEAM_METRICS = {"xg": ("xG", "xg"), "possession": ("Possession %", "possession_pct"),
@@ -19,6 +19,7 @@ TEAM_METRICS = {"xg": ("xG", "xg"), "possession": ("Possession %", "possession_p
                 "pressures": ("Pressures", "pressures")}
 PLAYER_METRICS = {"top_speed": ("Top speed km/h", "top_speed_kmh"), "distance": ("Distance km", "distance_km"),
                   "pass_accuracy_player": ("Pass accuracy %", "pass_accuracy_pct")}
+NON_LATIN = {"ar", "hi"}   # scripts where a model tends to transliterate names - those answers must keep them
 DEFAULT_PROFILE = {"mode": "analyst", "language": "en", "club": None, "player": None, "metric": None}
 FAN_MIN_IMPORTANCE = 60
 FOCUS_MIN_IMPORTANCE = 70   # player-focus mode: other moments only if big
@@ -30,17 +31,19 @@ Input JSON: {"task": "personalize", "profile": {"mode", "language", "club_name",
 - mode "analyst": keep the stats and precise wording.
 - If club_name is set, write from that club's supporters' point of view (still factual).
 - Translate every field into the profile language (natural broadcast style).
-- Never add facts, numbers or names that are not in the overlay; keep player and team names exactly as given.
+- Never add facts, numbers or names that are not in the overlay; keep player and team names exactly as given,
+  in Latin letters, in every language (Arabic and Hindi too): write "Arribas", never translate or transliterate a name.
 - Sentence case: capitalise only the first word and names.
 Reply with JSON only: {"headline": str, "text": str, "why": str}"""
 
 
 class Personalizer:
-    def __init__(self, client, metrics, timeout_s, profiles, team_names):
+    def __init__(self, client, metrics, timeout_s, profiles, team_names, player_names=None):
         self.agent = Agent(client, INSTRUCTIONS, name="personalizer")
         self.metrics, self.timeout_s = metrics, timeout_s
         self.profiles = {p["profile_id"]: {**DEFAULT_PROFILE, **p} for p in profiles}
         self.team_names = team_names
+        self.player_names = player_names or {}
         self.cache = {}
 
     def add_profile(self, profile):
@@ -64,10 +67,13 @@ class Personalizer:
         if m in TEAM_METRICS:
             label, key = TEAM_METRICS[m]
             return {"label": label, "values": {t["name"]: t[key] for t in snap["teams"].values()}}
-        if m in PLAYER_METRICS and prof["player"] in snap["players"]:
+        if m in PLAYER_METRICS and prof["player"]:
             label, key = PLAYER_METRICS[m]
-            p = snap["players"][prof["player"]]
-            return {"label": label, "values": {p["name"]: p[key]}}
+            p = snap["players"].get(prof["player"])
+            if p:
+                return {"label": label, "values": {p["name"]: p[key]}}
+            # not in the stats yet (on the bench / no touch yet): show the name with a dash, not nothing
+            return {"label": label, "values": {self.player_names.get(prof["player"], prof["player"]): "–"}}
         return None
 
     def decorate(self, ov, prof, snap):
@@ -102,8 +108,10 @@ class Personalizer:
                                    "language_code": prof["language"],
                                    "club_name": self.team_names.get(prof["club"]),
                                    "player_name": snap["players"].get(prof["player"], {}).get("name")}}
+            keep = headline_names(fields, facts) if prof["language"] in NON_LATIN else ()
             data, reason = await call_agent(self.agent, payload, ("headline", "text", "why"),
-                                            {"overlay": fields, "facts": facts}, self.metrics, self.timeout_s)
+                                            {"overlay": fields, "facts": facts}, self.metrics, self.timeout_s,
+                                            keep_names=keep)
             self.cache[key] = (data, reason)
         data, reason = self.cache[key]
         if data:

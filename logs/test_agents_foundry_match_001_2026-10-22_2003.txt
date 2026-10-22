@@ -1,0 +1,58 @@
+log: logs\test_agents_foundry_match_001_2026-10-22_2003.txt
+match match_001: {'RIV': 4, 'NGR': 1}, club NGR, player focus RIV27
+
+== Full match (foundry) ==
+{"llm_calls": {"explainer": 24, "narrator": 24, "personalizer": 24}, "cache_hits": 0, "blocked_drafts": 3, "fallbacks": {"explainer:contradiction": 1}, "rejected_names": {}, "llm_latency_p95_s": 4.271, "instant_latency_p95_ms": 6.56, "overlays": 160, "rejected_events": 0, "workflow_errors": 0}
+
+== Rejected answers (3; retried with feedback, template shown if still rejected) ==
+  explainer [contradiction] Your previous answer was rejected - claims that contradict the data: ['Riverside are not on top']. Rewrite it using only the facts.
+    text: headline | Riverside dominates amid chaotic rhythm | why | Despite the high turnover rate, Riverside leads 1-0 with 80% possession and twice the shots on target. This control amid chaos puts heavy pre
+  explainer [contradiction] Your previous answer was rejected - claims that contradict the data: ['Riverside are not on top']. Rewrite it using only the facts.
+    text: headline | Early chaos with Riverside leading 1-0 | why | High turnovers and extreme possession imbalance create unpredictability despite Riverside's control. The 1-0 score adds pressure but Riverside
+  explainer [contradiction] Your previous answer was rejected - claims that contradict the data: ['Riverside are not on top']. Rewrite it using only the facts.
+    text: headline | Northgate's Brandt receives yellow card | why | This yellow card disrupts Northgate's growing momentum and adds pressure as they trail 2-0 with Riverside dominating chances. It could hamper
+
+== Checks: pipeline ==
+  [PASS] 1. every alert became a moment the analyst sees  32/32
+  [PASS] 2. every important moment got an explanation (v2)  21/21
+  [PASS] 3. explanations come from the LLM agents (>= 90%, rest safe template fallbacks)  llm 95%, fallbacks {'explainer:contradiction': 1}
+  [PASS] 4. instant overlays p95 < 50 ms  6.56 ms
+  [PASS] 5. half-time and full-time recaps for every viewer  {'half_time': 3, 'full_time': 3}
+  [PASS] 6. every overlay matches the schema  160 overlays, 0 bad
+  [PASS] 7. LLM cost bounded (< 150 calls per match)  72 calls
+
+== Checks: personalization ==
+  [PASS] 8. fan sees fewer, bigger moments than analyst  fan 13 vs analyst 32, low-importance shown 0
+  [PASS] 9. Spanish viewer gets Spanish (v2) overlays  13 overlays
+  [PASS] 10. favourite-club highlight correct  4 highlighted
+  [PASS] 11. player focus (RIV27): all their moments + tracker every 5 min  7/7 moments, 20 trackers
+  [PASS] 12. single-metric ticker for metric viewers  {'fan_es_club': 20, 'focus_player': 20}
+
+== Checks: ingest ==
+  [PASS] 13. ingest agent rejects a replayed (duplicate) event  rejected 1
+
+== Checks: contradiction rules ==
+  [PASS] 21. contradictions caught, true claims pass  caught 6/6, false alarms 0 []
+
+== Checks: name rules ==
+  [PASS] 22. invented names caught, known names and possessives pass  caught 2/2, false alarms 0 []
+  [PASS] 23. lower-cased names get their capitals back (other words untouched)  {'title': "Riverside dominate with Arribas' four goals", 'summary': 'Northgate fought back. Big chances and momentum stay lower case.'}
+
+== Checks: option combinations ==
+  viewer                 moments  v2  lang  club  metric  player  recaps
+  c1_analyst_fr_home          32  21    ok    ok    ok    ok    ok
+  c2_fan_pt_striker            7   6    ok    ok    ok    ok    ok
+  c3_fan_ar_away              13  13    ok    ok    ok    ok    ok
+  c4_analyst_es_mid            7   6    ok    ok    ok    ok    ok
+  c5_fan_hi                   13  13    ok    ok    ok    ok    ok
+  c6_analyst_en_away          10   6    ok    ok    ok    ok    ok
+  [PASS] 24. every option value works (6 combination viewers: languages, clubs, players, metrics)  75 LLM calls
+
+  Sample captions (read for language quality):
+  [fr] 02:26 Le but précoce d'Arribas donne l'avantage à Riverside | 02:26 – Arribas ouvre le score tôt pour Riverside, leur donnant le contrôle avec une domination de la possession et mettant Northgate sous pression, menant déjà 1-0 !
+  [pt] 02:26 Gol cedo de Arribas põe Riverside na frente | Aos 2:26, Arribas marca para Riverside, que domina e pressiona Northgate, 1-0 já!
+  [ar] 02:26 هدف مبكر من أريباس يمنح ريفرسايد التقدم | 02:26 - يحرز أريباس هدفًا مبكرًا لريفيرسايد، يسيطرون على اللعب ويضغطون على شمالجيت، الآن النتيجة 1-0.
+  [es] 02:26 El gol tempranero de Arribas pone a Riverside por delante | 02:26 – Arribas marca pronto para Riverside, otorgándoles control mientras dominan la posesión y presionan a Northgate, liderando 1-0 ya.
+  [hi] 02:26 अरिबास का जल्दी गोल, रिवरसाइड आगे | 02:26 पर अरिबास ने जल्दी गोल किया, रिवरसाइड 1-0 से आगे है!
+
+17/17 checks passed -> PASS

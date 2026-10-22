@@ -1,6 +1,7 @@
 """Shared agent plumbing: fact sheets, grounding check, and a safe JSON call to an LLM agent."""
 
 import asyncio
+import hashlib
 import json
 import os
 import re
@@ -241,6 +242,18 @@ def verification(output, facts):
             "names": sorted(names - NAME_ALLOW)}
 
 
+def missing_names(output, names):
+    """Names that must appear unchanged (Latin letters) but are missing - e.g. transliterated into Arabic or Hindi."""
+    text = " ".join(_texts(output, []))
+    return [n for n in names if not re.search(r"(?<![\w])" + re.escape(n) + r"(?![\w])", text)]
+
+
+def headline_names(fields, facts):
+    """Single-word team / player names in an overlay headline (the subject a translation must keep)."""
+    return sorted(n for n in _proper_names(facts, set())
+                  if " " not in n and re.search(r"(?<![\w])" + re.escape(n) + r"(?![\w])", fields.get("headline", "")))
+
+
 def grounding_problem(output, facts):
     """None if the output is grounded in the facts, else the reason it is not."""
     if ungrounded_numbers(output, facts):
@@ -317,8 +330,7 @@ def restore_case(output, facts):
 
 def save_answer_cache(client, path, model):
     """Write the client's checked answers to a JSON file (shipped with the app: preset viewers cost nothing)."""
-    entries = [[name, task, data] for (name, task), data in ANSWER_CACHE.get(client, {}).items()
-               if isinstance(data, dict)]
+    entries = [[*key, data] for key, data in ANSWER_CACHE.get(client, {}).items() if isinstance(data, dict)]
     os.makedirs(os.path.dirname(path), exist_ok=True)
     with open(path, "w", encoding="utf-8") as f:
         json.dump({"model": model, "answers": entries}, f, ensure_ascii=False, indent=0)
@@ -334,19 +346,26 @@ def load_answer_cache(client, path, model):
     if saved.get("model") != model:
         return 0
     cache = ANSWER_CACHE.setdefault(client, {})
-    for name, task, data in saved["answers"]:
-        cache[(name, task)] = data
+    for *key, data in saved["answers"]:
+        cache[tuple(key)] = data
     return len(saved["answers"])
 
 
-async def call_agent(agent, payload, required, facts, metrics, timeout_s, retries=1):
+def task_key(agent, payload):
+    """Cache key: agent, a fingerprint of its instructions (a prompt change invalidates old answers), the task."""
+    instr = (getattr(agent, "default_options", None) or {}).get("instructions") or ""
+    return (agent.name, hashlib.sha1(instr.encode("utf-8")).hexdigest()[:10],
+            json.dumps(payload, sort_keys=True, ensure_ascii=False))
+
+
+async def call_agent(agent, payload, required, facts, metrics, timeout_s, retries=1, keep_names=()):
     """
     Run an Agent Framework agent on a JSON task and validate the answer.
     Returns (data, None) on success or (None, reason) - callers then fall back to templates.
     Identical tasks are answered from the cache (or wait for the identical call already in flight).
     """
     cache = ANSWER_CACHE.setdefault(agent.client, {})
-    key = (agent.name, json.dumps(payload, sort_keys=True, ensure_ascii=False))
+    key = task_key(agent, payload)
     hit = cache.get(key)
     if hit is not None:
         data = await asyncio.shield(hit) if isinstance(hit, asyncio.Future) else hit
@@ -359,7 +378,7 @@ async def call_agent(agent, payload, required, facts, metrics, timeout_s, retrie
     cache[key] = pending
     data, reason = None, "error"
     try:
-        data, reason = await _call_model(agent, payload, required, facts, metrics, timeout_s, retries)
+        data, reason = await _call_model(agent, payload, required, facts, metrics, timeout_s, retries, keep_names)
     finally:
         pending.set_result(data)
         if data is None:
@@ -369,7 +388,7 @@ async def call_agent(agent, payload, required, facts, metrics, timeout_s, retrie
     return (restore_case(data, facts) if data is not None else None), reason
 
 
-async def _call_model(agent, payload, required, facts, metrics, timeout_s, retries):
+async def _call_model(agent, payload, required, facts, metrics, timeout_s, retries, keep_names=()):
     """One task, with a retry: a grounding rejection is explained to the model so it can correct itself."""
     reason, feedback = "unknown", None
     for _ in range(retries + 1):
@@ -386,9 +405,14 @@ async def _call_model(agent, payload, required, facts, metrics, timeout_s, retri
                 continue
             answer = {k: data[k] for k in required}
             problem = grounding_problem(answer, facts)
+            renamed = [] if problem else missing_names(answer, keep_names)
+            if renamed:
+                problem = "renamed"
             if problem:
                 reason = problem
-                feedback = grounding_feedback(answer, facts, problem)
+                feedback = (f"Your previous answer was rejected - keep these names exactly as written, in Latin letters: "
+                            f"{renamed}. Rewrite it using only the facts." if renamed
+                            else grounding_feedback(answer, facts, problem))
                 metrics.rejected.append({"agent": agent.name, "problem": problem, "why": feedback,
                                          "text": " | ".join(s for s in _texts(answer, []) if s)})
                 if problem == "unknown_name":

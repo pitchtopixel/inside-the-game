@@ -111,7 +111,8 @@ class MatchContext:
         self.moments = MomentsAgent()
         self.explainer = Explainer(client, self.metrics, timeout_s)
         self.narrator = Narrator(client, self.metrics, timeout_s)
-        self.personalizer = Personalizer(client, self.metrics, timeout_s, profiles, team_names)
+        player_names = {p["player_id"]: p["name"] for t in meta["teams"].values() for p in t["players"]}
+        self.personalizer = Personalizer(client, self.metrics, timeout_s, profiles, team_names, player_names)
         self.seen, self.rejected = set(), 0
         self.schedule = None  # set by Orchestrator: hands work to the background workflows
 

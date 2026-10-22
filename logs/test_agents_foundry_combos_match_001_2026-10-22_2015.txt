@@ -1,0 +1,20 @@
+log: logs\test_agents_foundry_combos_match_001_2026-10-22_2015.txt
+
+== Checks: option combinations ==
+  viewer                 moments  v2  lang  club  metric  player  recaps
+  c1_analyst_fr_home          32  21    ok    ok    ok    ok    ok
+  c2_fan_pt_striker            7   6    ok    ok    ok    ok    ok
+  c3_fan_ar_away              13  13    ok    ok    ok    ok    ok
+  c4_analyst_es_mid            7   6    ok    ok    ok    ok    ok
+  c5_fan_hi                   13  13    ok    ok    ok    ok    ok
+  c6_analyst_en_away          10   6    ok    ok    ok    ok    ok
+  [PASS] 25. every option value works (6 combination viewers: languages, clubs, players, metrics)  147 LLM calls
+
+  Sample captions (read for language quality):
+  [fr] 02:26 Un but précoce donne l'avantage à Riverside | 02:26 BUT ! Arribas envoie une magnifique frappe du pied gauche, offrant à Riverside une avance rapide de 1-0 et mettant Northgate sous pression.
+  [pt] 02:26 Golo cedo coloca o Riverside à frente | 02:26 golo! Arribas marcou com um belo remate com o pé esquerdo. Riverside já vence 1-0.
+  [ar] 02:26 هدف مبكر يجعل Riverside في المقدمة | 02:26 هدف! Arribas يسجل بقوة بالقدم اليسرى، ويمنح Riverside التقدم 1-0 مبكرًا.
+  [es] 02:26 Gol tempranero pone a Riverside por delante | 02:26 ¡GOL! Arribas marca con un potente disparo de zurda, dando a Riverside una ventaja inicial de 1-0 y presionando a Northgate.
+  [hi] 02:26 शानदार शुरुआत, Riverside आगे | 02:26 गोल! Arribas ने दाहिने पैर से बढ़िया गोल कर Riverside को 1-0 से आगे कर दिया।
+
+1/1 checks passed

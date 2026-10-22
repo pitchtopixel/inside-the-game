@@ -110,7 +110,7 @@ python test_agents.py --match match_002 --log # another match (profiles: away-cl
 python test_agents.py --show                  # + print sample overlays
 python test_agents.py --foundry --log         # real Foundry model (needs .env + az login; a few cents)
 ```
-**Expect:** run summary (LLM calls, cache hits, blocked drafts, fallbacks, rejected names, latency, overlays), checks → `23/23 checks passed -> PASS` (mock)
+**Expect:** run summary (LLM calls, cache hits, blocked drafts, fallbacks, rejected names, latency, overlays), checks → `25/25 checks passed -> PASS` (mock), `17/17` (Foundry)
 
 **Checks:**
 1. Every alert became a moment the analyst sees
@@ -131,8 +131,15 @@ contradicts the data / is too slow → template fallback, nothing lost, no inven
 21. Contradiction rules: 6 wrong sentences caught, 5 true sentences pass (no false alarms)
 22. Name rules: invented names caught, known names and possessives ("Riverside's") pass
 23. Lower-cased names get their capitals back (a real model once wrote a whole recap in lower case)
+24. Arabic / Hindi answers must keep names in Latin letters (a real model transliterated them, and translated "Northgate")
+25. Every option value works: 6 combination viewers (French, Portuguese, Arabic, Spanish, Hindi; home / away club;
+    player focus incl. a substitute; all 8 metrics) - language, club highlight, metric line, player moments, recaps.
+    Prints one sample caption per language to read for quality
 
-**Last result (22 Oct, mock):** 23/23 PASS on match_001 and match_002 · logs: `logs/test_agents_mock_match_001_2026-10-22_1350.txt`, `logs/test_agents_mock_match_002_2026-10-22_1350.txt`
+**Last result (22 Oct, mock):** 25/25 PASS on match_001 and match_002 (logs `logs/test_agents_mock_match_00*_2026-10-22_20*.txt`)
+**Last result (22 Oct, Foundry, match_001):** 17/17 PASS · combination viewers rerun after the name fix: all 6 ok, Arabic and Hindi
+keep "Arribas" / "Riverside" in Latin letters · logs: `logs/test_agents_foundry_match_001_2026-10-22_2003.txt`,
+`logs/test_agents_foundry_combos_match_001_2026-10-22_2015.txt`
 
 ### Foundry setup (done 20 Oct)
 1. Azure free trial ($200 credit, ~30 days). Never click "Upgrade to pay-as-you-go"; the spending limit stops charges at $200.
@@ -188,8 +195,9 @@ narrator's task, which is part of the personalizer's, so changes cascade). Then 
 ```powershell
 python prebake_cache.py --log                 # every match x the app's preset viewers -> data/cache/answers.json
 ```
-**Last result (22 Oct):** 364 answers saved (6 preset viewers incl. Fan · English; 154 new calls after the name-case fix) ·
-check: live replay with the presets = 59 cache hits, 0 model calls · log: `logs/prebake_cache_2026-10-22_1354.txt`
+Cache keys include a fingerprint of each agent's instructions, so a prompt change never reuses old answers.
+**Last result (22 Oct):** 274 answers saved (personalizer regenerated after the name rule) · live presets 0 model calls ·
+log: `logs/prebake_cache_2026-10-22_2010.txt`
 
 **Automated test** (starts its own server on port 8601):
 ```powershell
@@ -255,6 +263,6 @@ Rerun `prebake_cache.py` first if prompts, agents or matches changed.
 **Cost controls:** scale to zero (min 0 / max 1 replica, 0.5 vCPU / 1 GiB - inside the free monthly grant), no Log Analytics,
 GHCR instead of Azure Container Registry, preset viewers answered from the prebaked cache, max 5 viewers, idle replays closed after 10 min.
 
-**Last result (22 Oct, image v7 - no-cache headers; player-focus preset = most shots, e.g. Arribas; tracker bar shows the player tracker in player focus):** player-focus preset 0 model calls, 53 cache hits · page HTTP 200 (0.8 s warm, ~22 s after scale-to-zero) · presets (analyst + English fan):
+**Last result (22 Oct, image v8 - no-cache headers; player-focus preset = most shots; player tracker in player focus; names kept in Arabic / Hindi):** player-focus preset 0 model calls, 53 cache hits · page HTTP 200 (0.8 s warm, ~22 s after scale-to-zero) · presets (analyst + English fan):
 **0 model calls**, 59 cache hits, 36 verified AI overlays, 4 recaps · custom viewer (English fan of Riverside): 16 Foundry calls
 via managed identity, 1 draft blocked & rewritten, 0 fallbacks
