@@ -167,14 +167,24 @@ python app.py --match data/synthetic/match_002.json   # another match
 - Each pane: preset or custom viewer (mode, language, favourite club, player focus, metric)
 - Click the timeline or a key-moment chip to jump; badges show **AI · grounded**, **LIVE** (template) or **AUTO** (fallback)
 - `--mock-latency 1.0` (default) delays the mock model so the template → AI upgrade is visible; ignored with Foundry
-- Port 8600 (the streamer test page stays on 8500)
+- Port 8600 (the streamer test page stays on 8500); `--host 0.0.0.0` inside a container
+- Each browser gets its own replay (max 5 at once, `--max-sessions`); a replay closes after 10 min with no clicks while paused
+- Answer cache: identical agent tasks are answered once and shared by every viewer (only checked answers are kept).
+  With Foundry, the app preloads `data/cache/answers.json`, so the preset viewers cost no model calls
+
+**Prebake the answer cache** (real model, ~200 calls, about ₹10; rerun after changing prompts, agents or matches):
+```powershell
+python prebake_cache.py --log                 # every match x the app's preset viewers -> data/cache/answers.json
+```
+**Last result (22 Oct):** 186 answers saved (match_001 85 calls, match_002 116 calls, 3 fallbacks not cached) ·
+check: one Foundry replay with the presets = 59 cache hits, 0 model calls · log: `logs/prebake_cache_2026-10-22_1108.txt`
 
 **Automated test** (starts its own server on port 8601):
 ```powershell
 python test_app.py --log
 python test_app.py --match match_002 --log
 ```
-**Expect:** `10/10 checks passed -> PASS`
+**Expect:** `13/13 checks passed -> PASS`
 
 **Checks:**
 1. Viewer receives every match event
@@ -187,7 +197,18 @@ python test_app.py --match match_002 --log
 8. Metric ticker reaches the fan viewer
 9. Timeline items stream to viewers
 10. Seek to 60' rebuilds state and timeline
+11. Each browser has its own replay (one viewer's seek does not reach another)
+12. A later viewer of the same match reuses cached answers (0 model calls)
+13. A sixth browser at once is told the demo is busy
 
-**Last result (20 Oct, mock):**
-- match_001: 10/10 PASS · log: `logs/test_app_match_001_2026-10-20_0059.txt` · screenshot: `docs/img/ui_compare.png`
-- match_002: 10/10 PASS · log: `logs/test_app_match_002_2026-10-20_0100.txt` · screenshot: `docs/img/ui_match002_pitch.png`
+**Last result (22 Oct, mock):**
+- match_001: 13/13 PASS (later viewer: 0 model calls, 44 cache hits) · log: `logs/test_app_match_001_2026-10-22_1107.txt` · screenshot: `docs/img/ui_compare.png`
+- match_002: 13/13 PASS · log: `logs/test_app_match_002_2026-10-22_1107.txt` · screenshot: `docs/img/ui_match002_pitch.png`
+
+## 6. Container (local)
+```powershell
+docker build -t inside-the-game .
+docker run --rm -p 8600:8600 inside-the-game          # mock model; open http://localhost:8600
+```
+Image: python:3.13-slim, ~360 MB; contains the app, `static/`, `data/synthetic/`, `data/cache/` - never `.env`, logs or raw data.
+**Last result (22 Oct):** page served (HTTP 200), cache + matches present, no `.env` in the image
