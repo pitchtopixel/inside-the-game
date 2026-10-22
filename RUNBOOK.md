@@ -110,7 +110,7 @@ python test_agents.py --match match_002 --log # another match (profiles: away-cl
 python test_agents.py --show                  # + print sample overlays
 python test_agents.py --foundry --log         # real Foundry model (needs .env + az login; a few cents)
 ```
-**Expect:** run summary (LLM calls, fallbacks, rejected names, latency, overlays), checks → `22/22 checks passed -> PASS` (mock)
+**Expect:** run summary (LLM calls, cache hits, blocked drafts, fallbacks, rejected names, latency, overlays), checks → `23/23 checks passed -> PASS` (mock)
 
 **Checks:**
 1. Every alert became a moment the analyst sees
@@ -130,8 +130,9 @@ python test_agents.py --foundry --log         # real Foundry model (needs .env +
 contradicts the data / is too slow → template fallback, nothing lost, no invented text on screen
 21. Contradiction rules: 6 wrong sentences caught, 5 true sentences pass (no false alarms)
 22. Name rules: invented names caught, known names and possessives ("Riverside's") pass
+23. Lower-cased names get their capitals back (a real model once wrote a whole recap in lower case)
 
-**Last result (21 Oct, mock):** 22/22 PASS on match_001 and match_002 · logs: `logs/test_agents_mock_match_001_2026-10-21_0015.txt`, `logs/test_agents_mock_match_002_2026-10-21_0015.txt`
+**Last result (22 Oct, mock):** 23/23 PASS on match_001 and match_002 · logs: `logs/test_agents_mock_match_001_2026-10-22_1350.txt`, `logs/test_agents_mock_match_002_2026-10-22_1350.txt`
 
 ### Foundry setup (done 20 Oct)
 1. Azure free trial ($200 credit, ~30 days). Never click "Upgrade to pay-as-you-go"; the spending limit stops charges at $200.
@@ -165,19 +166,30 @@ python app.py --match data/synthetic/match_002.json   # another match
 - Pitch: name tag on the player with the ball; shot speed + xG on every shot and sprint speeds for all viewers; pass distance / difficulty / ball speed for analysts
 - **Compare viewers** button (or open http://localhost:8600/?compare) → Analyst vs Fan side by side
 - Each pane: preset or custom viewer (mode, language, favourite club, player focus, metric)
-- Click the timeline or a key-moment chip to jump; badges show **AI · grounded**, **LIVE** (template) or **AUTO** (fallback)
+- First screen: fixture card with **▶ Play replay**; empty panels say what will appear
+- **AI match story** under each pitch: latest key moment (bigger moments stay on top), *Why it matters*, evidence (analyst),
+  and a **Verified** box built from the real grounding check (numbers matched, names checked, no out-of-scope claims,
+  no contradictions); earlier moments listed below it
+- Click the timeline or a key-moment chip to jump **and** show that moment's explanation in the story panel;
+  badges show **AI · grounded**, **LIVE** (template) or **AUTO** (fallback)
+- Momentum card: what "threat share" means + **What changed** (latest momentum / pressure / rhythm moment); stat definitions on hover
+- Agents card: model calls, answers from cache, AI drafts blocked & rewritten, template fallbacks
+- Full-time recap stays until closed; **Match recap** button reopens it. Recaps get momentum per 15 minutes (`momentum_by_15_min`)
+- Compare viewers = Analyst · English vs Fan · English (same facts, different depth); Spanish / Hindi / player focus are presets
 - `--mock-latency 1.0` (default) delays the mock model so the template → AI upgrade is visible; ignored with Foundry
 - Port 8600 (the streamer test page stays on 8500); `--host 0.0.0.0` inside a container
 - Each browser gets its own replay (max 5 at once, `--max-sessions`); a replay closes after 10 min with no clicks while paused
 - Answer cache: identical agent tasks are answered once and shared by every viewer (only checked answers are kept).
   With Foundry, the app preloads `data/cache/answers.json`, so the preset viewers cost no model calls
 
-**Prebake the answer cache** (real model, ~200 calls, about ₹10; rerun after changing prompts, agents or matches):
+**Prebake the answer cache** (real model; reuses saved answers, only new tasks call the model). Rerun after **any** change
+that alters what an agent receives - prompts, facts, presets, or post-processing of answers (an explanation is part of the
+narrator's task, which is part of the personalizer's, so changes cascade). Then check: presets must show 0 model calls.
 ```powershell
 python prebake_cache.py --log                 # every match x the app's preset viewers -> data/cache/answers.json
 ```
-**Last result (22 Oct):** 186 answers saved (match_001 85 calls, match_002 116 calls, 3 fallbacks not cached) ·
-check: one Foundry replay with the presets = 59 cache hits, 0 model calls · log: `logs/prebake_cache_2026-10-22_1108.txt`
+**Last result (22 Oct):** 364 answers saved (6 preset viewers incl. Fan · English; 154 new calls after the name-case fix) ·
+check: live replay with the presets = 59 cache hits, 0 model calls · log: `logs/prebake_cache_2026-10-22_1354.txt`
 
 **Automated test** (starts its own server on port 8601):
 ```powershell
@@ -202,8 +214,9 @@ python test_app.py --match match_002 --log
 13. A sixth browser at once is told the demo is busy
 
 **Last result (22 Oct, mock):**
-- match_001: 13/13 PASS (later viewer: 0 model calls, 44 cache hits) · log: `logs/test_app_match_001_2026-10-22_1107.txt` · screenshot: `docs/img/ui_compare.png`
-- match_002: 13/13 PASS · log: `logs/test_app_match_002_2026-10-22_1107.txt` · screenshot: `docs/img/ui_match002_pitch.png`
+- match_001: 13/13 PASS (later viewer: 0 model calls, 44 cache hits) · log: `logs/test_app_match_001_2026-10-22_1350.txt`
+- match_002: 13/13 PASS · log: `logs/test_app_match_002_2026-10-22_1351.txt`
+- Screenshots (Foundry): `docs/img/ui_start.png` (first screen), `docs/img/ui_story_compare.png` (analyst vs fan, AI story + Verified box)
 
 ## 6. Container (local)
 ```powershell
@@ -242,5 +255,6 @@ Rerun `prebake_cache.py` first if prompts, agents or matches changed.
 **Cost controls:** scale to zero (min 0 / max 1 replica, 0.5 vCPU / 1 GiB - inside the free monthly grant), no Log Analytics,
 GHCR instead of Azure Container Registry, preset viewers answered from the prebaked cache, max 5 viewers, idle replays closed after 10 min.
 
-**Last result (22 Oct):** page HTTP 200 in 0.9 s · presets (analyst + Spanish fan): **0 model calls**, 59 cache hits ·
-custom viewer (English fan): 15 Foundry calls via managed identity, 0 fallbacks
+**Last result (22 Oct, image v3):** page HTTP 200 (0.8 s warm, ~22 s after scale-to-zero) · presets (analyst + English fan):
+**0 model calls**, 59 cache hits, 36 verified AI overlays, 4 recaps · custom viewer (English fan of Riverside): 16 Foundry calls
+via managed identity, 1 draft blocked & rewritten, 0 fallbacks

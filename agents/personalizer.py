@@ -11,7 +11,7 @@ import asyncio
 
 from agent_framework import Agent
 
-from agents.common import call_agent
+from agents.common import call_agent, verification
 
 LANGUAGES = {"en": "English", "es": "Spanish", "fr": "French", "pt": "Portuguese", "hi": "Hindi", "ar": "Arabic"}
 TEAM_METRICS = {"xg": ("xG", "xg"), "possession": ("Possession %", "possession_pct"),
@@ -95,8 +95,8 @@ class Personalizer:
         if prof["mode"] == "analyst" and prof["language"] == "en":
             return out
         key = (ov["overlay_id"], ov["version"], prof["mode"], prof["language"], prof["club"])
+        fields = {"headline": ov["headline"], "text": ov["text"], "why": ov.get("why") or ""}
         if key not in self.cache:
-            fields = {"headline": ov["headline"], "text": ov["text"], "why": ov.get("why") or ""}
             payload = {"task": "personalize", "overlay": fields,
                        "profile": {"mode": prof["mode"], "language": LANGUAGES.get(prof["language"], prof["language"]),
                                    "language_code": prof["language"],
@@ -109,6 +109,9 @@ class Personalizer:
         if data:
             out.update(headline=data["headline"], text=data["text"], why=data["why"] or None,
                        language=prof["language"], pending_translation=False)
+            if ov.get("source") == "llm":
+                out["verified"] = verification({k: data[k] for k in ("headline", "text", "why")},
+                                               {"overlay": fields, "facts": facts})
         else:
             out.update(source="fallback", fallback_reason=f"personalizer:{reason}", pending_translation=False)
         return out

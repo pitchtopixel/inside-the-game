@@ -12,7 +12,7 @@ import glob
 import os
 import sys
 
-from agents.common import save_answer_cache
+from agents.common import load_answer_cache, save_answer_cache
 from app import ANSWER_CACHE_PATH, TIMELINE, Session, make_profile
 from llm import get_chat_client
 from orchestrator import Orchestrator
@@ -46,6 +46,7 @@ def main():
         start_log("prebake_cache")
     model = os.getenv("FOUNDRY_MODEL")
     client = get_chat_client("foundry")
+    print(f"reusing {load_answer_cache(client, ANSWER_CACHE_PATH, model)} saved answers (only new tasks call the model)")
     asyncio.run(bake_all(client))
     n = save_answer_cache(client, ANSWER_CACHE_PATH, model)
     print(f"\nsaved {n} checked answers ({model}) -> {ANSWER_CACHE_PATH}")

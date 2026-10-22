@@ -1,0 +1,8 @@
+log: logs\prebake_cache_2026-10-22_1348.txt
+reusing 186 saved answers (only new tasks call the model)
+match_001.json: 6 viewers (_timeline, p-analyst-en-_-_-_, p-fan-en-_-_-_, p-fan-es-NGR-_-possession, p-fan-en-_-NGR28-xg, p-fan-hi-RIV-_-_)
+  model calls 24, cache hits 74, fallbacks {}
+match_002.json: 6 viewers (_timeline, p-analyst-en-_-_-_, p-fan-en-_-_-_, p-fan-es-EVW-_-possession, p-fan-en-_-HBC25-xg, p-fan-hi-HBC-_-_)
+  model calls 20, cache hits 99, fallbacks {'explainer:contradiction': 1, 'personalizer:contradiction': 1}
+
+saved 222 checked answers (gpt-4.1-mini) -> data\cache\answers.json

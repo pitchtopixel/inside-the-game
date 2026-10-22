@@ -28,7 +28,8 @@ class Metrics:
     def summary(self):
         lat = sorted(self.latency_s)
         p95 = lat[int(0.95 * (len(lat) - 1))] if lat else 0.0
-        return {"llm_calls": dict(self.calls), "cache_hits": self.cache_hits, "fallbacks": dict(self.fallbacks),
+        return {"llm_calls": dict(self.calls), "cache_hits": self.cache_hits, "blocked_drafts": len(self.rejected),
+                "fallbacks": dict(self.fallbacks),
                 "rejected_names": dict(self.rejected_names), "llm_latency_p95_s": round(p95, 3)}
 
 
@@ -232,6 +233,14 @@ def grounding_feedback(output, facts, problem):
     return f"Your previous answer was rejected - {detail[problem]()}. Rewrite it using only the facts."
 
 
+def verification(output, facts):
+    """What the grounding check verified in an answer shown on screen (for the viewer's "Verified" box)."""
+    names = {POSSESSIVE.sub("", m.group(0)) for t in _texts(output, []) for m in CAPITALISED.finditer(t)
+             if not SENTENCE_START.search(t[:m.start()])}
+    return {"passed": grounding_problem(output, facts) is None, "numbers": len(_numbers(output, set())),
+            "names": sorted(names - NAME_ALLOW)}
+
+
 def grounding_problem(output, facts):
     """None if the output is grounded in the facts, else the reason it is not."""
     if ungrounded_numbers(output, facts):
@@ -264,6 +273,46 @@ def parse_json(text):
 # reuses the first viewer's answers. Keyed by the exact task; only answers that passed the checks are kept.
 ANSWER_CACHE = weakref.WeakKeyDictionary()  # client -> {task key: answer | in-flight future}
 CACHE_MAX = 5000
+
+
+NAME_KEYS = ("name", "player_name", "team_name", "opponent_name")
+SENTENCE_FIRST = re.compile(r"(^|[.!?]\s+)([a-zà-ÿ])")
+
+
+def _proper_names(facts, out):
+    """Team and player names in the facts (team names are the keys of "score")."""
+    if isinstance(facts, dict):
+        for k, v in facts.items():
+            if k in NAME_KEYS and isinstance(v, str):
+                words = v.split()
+                out.update(words if k != "name" or len(words) == 1 else words[-1:] + [v])
+            elif k == "score" and isinstance(v, dict):
+                out.update(w for t in v for w in t.split())
+            else:
+                _proper_names(v, out)
+    elif isinstance(facts, list):
+        for v in facts:
+            _proper_names(v, out)
+    return out
+
+
+def restore_case(output, facts):
+    """Undo over-applied sentence case: names from the facts get their capitals back, sentences start with one."""
+    names = sorted(_proper_names(facts, set()), key=len, reverse=True)
+    fix = re.compile(r"(?<![\w])(" + "|".join(re.escape(n) for n in names) + r")(?![\w])", re.I) if names else None
+    proper = {n.lower(): n for n in names}
+
+    def one(v):
+        if isinstance(v, str):
+            if fix:
+                v = fix.sub(lambda m: proper.get(m.group(0).lower(), m.group(0)), v)
+            return SENTENCE_FIRST.sub(lambda m: m.group(1) + m.group(2).upper(), v)
+        if isinstance(v, dict):
+            return {k: one(x) for k, x in v.items()}
+        if isinstance(v, list):
+            return [one(x) for x in v]
+        return v
+    return one(output)
 
 
 def save_answer_cache(client, path, model):
@@ -303,7 +352,7 @@ async def call_agent(agent, payload, required, facts, metrics, timeout_s, retrie
         data = await asyncio.shield(hit) if isinstance(hit, asyncio.Future) else hit
         if data is not None:
             metrics.cache_hits += 1
-            return data, None
+            return restore_case(data, facts), None
     if len(cache) >= CACHE_MAX:
         cache.clear()
     pending = asyncio.get_running_loop().create_future()
@@ -317,7 +366,7 @@ async def call_agent(agent, payload, required, facts, metrics, timeout_s, retrie
             cache.pop(key, None)  # failed: the next viewer asks the model again
         else:
             cache[key] = data
-    return data, reason
+    return (restore_case(data, facts) if data is not None else None), reason
 
 
 async def _call_model(agent, payload, required, facts, metrics, timeout_s, retries):

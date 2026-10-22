@@ -190,6 +190,14 @@ def name_rules():
     false_alarms = [s for s in right if unknown_names({"t": s}, facts)]
     check("22. invented names caught, known names and possessives pass", not missed and not false_alarms,
           f"caught {len(wrong) - len(missed)}/{len(wrong)}, false alarms {len(false_alarms)} {missed + false_alarms}")
+    # A real model once over-applied sentence case and wrote every name in lower case
+    from agents.common import restore_case
+    facts = {"score": {"Riverside": 4, "Northgate": 1}, "top_players": [{"name": "Iker Arribas"}]}
+    got = restore_case({"title": "riverside dominate with arribas' four goals",
+                        "summary": "northgate fought back. big chances and momentum stay lower case."}, facts)
+    want = {"title": "Riverside dominate with Arribas' four goals",
+            "summary": "Northgate fought back. Big chances and momentum stay lower case."}
+    check("23. lower-cased names get their capitals back (other words untouched)", got == want, str(got))
 
 
 async def amain(args):

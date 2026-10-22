@@ -81,6 +81,22 @@ class RecapRequest:
     kind: str
     snapshot: dict
     key_moments: list
+    momentum: list = None
+
+
+def momentum_blocks(state, first_half_s):
+    """Average threat share per 15 minutes of play, for the recap: how momentum moved over the match.
+    Added time joins the last block of its half (45+ -> 30-45, 90+ -> 75-90)."""
+    blocks = {}
+    for now, home_share, _ in state.momentum_timeline:
+        b = min(int(now // 900), 2) if now < first_half_s else 3 + min(int((now - first_half_s) // 900), 2)
+        blocks.setdefault(b, []).append(home_share)
+    out = []
+    for b, shares in sorted(blocks.items()):
+        home = round(100 * sum(shares) / len(shares))
+        out.append({"minutes": f"{b * 15}-{b * 15 + 15}",
+                    "threat_share_pct": {state.short[state.home]: home, state.short[state.away]: 100 - home}})
+    return out
 
 
 class MatchContext:
@@ -88,6 +104,7 @@ class MatchContext:
 
     def __init__(self, meta, profiles, client, timeout_s):
         self.state = MatchState(meta)
+        self.first_half_s = meta["match"]["periods"][0]["duration_s"]
         self.window_s = self.state.th["window_s"]
         self.metrics = Metrics()
         team_names = {t["team_id"]: t.get("short_name", t["team_id"]) for t in meta["teams"].values()}
@@ -147,7 +164,8 @@ class MomentsExecutor(Executor):
         if msg.event["type"] == "period_end":
             kind = "half_time" if msg.event["period"] == 1 else "full_time"
             keys = [m for m in self.mc.moments.key_moments if kind == "full_time" or m["period"] == 1]
-            self.mc.schedule(RecapRequest(kind, msg.snapshot, keys))
+            self.mc.schedule(RecapRequest(kind, msg.snapshot, keys,
+                                          momentum_blocks(self.mc.state, self.mc.first_half_s)))
         await ctx.send_message(MomentBatch(msg.event, moments, msg.snapshot))
 
 
@@ -204,7 +222,8 @@ class NarratorExecutor(Executor):
 
     @handler
     async def recap(self, req: RecapRequest, ctx: WorkflowContext[Narrated]) -> None:
-        ov, facts = await self.mc.narrator.recap(req.kind, req.snapshot, req.key_moments, self.mc.window_s)
+        ov, facts = await self.mc.narrator.recap(req.kind, req.snapshot, req.key_moments, self.mc.window_s,
+                                                 req.momentum)
         await ctx.send_message(Narrated(ov, facts, req.snapshot))
 
 

@@ -5,7 +5,7 @@ Narrator agent: instant template overlays (no LLM), LLM commentary lines, and ha
 from agent_framework import Agent
 
 from agents import templates
-from agents.common import call_agent, match_facts
+from agents.common import call_agent, match_facts, verification
 
 INSTRUCTIONS = """You are a TV football commentator writing on-screen text.
 Tasks (JSON input, JSON output only):
@@ -13,7 +13,8 @@ Tasks (JSON input, JSON output only):
   One vivid broadcast line, at most 25 words, starting with the match clock.
 - {"task": "recap", "facts": {...}} -> {"title": str, "summary": str, "key_moments": [str],
   "player_of_the_period": {"name": str, "reason": str}}
-  summary: 3-4 sentences on how the period was won or lost (control, chances, momentum swings).
+  summary: 3-5 sentences on how the period was won or lost (control, chances, momentum swings).
+  If facts.momentum_by_15_min is given, say how the attacking threat shifted between the teams over time.
   key_moments: one short line per moment in facts.key_moments, in order.
   player_of_the_period: choose from facts.top_players only.
 Use ONLY numbers and names that appear in the input. Never invent facts.
@@ -53,12 +54,18 @@ class Narrator:
                                         self.metrics, self.timeout_s)
         line = data["line"] if data else templates.commentary(facts, explanation)
         source = "llm" if data and expl_source == "llm" else "fallback"
-        return base_overlay(moment, 2, source, explanation["headline"], line, explanation["why"],
-                            explanation.get("evidence"), explanation.get("tag"), expl_reason or reason)
+        ov = base_overlay(moment, 2, source, explanation["headline"], line, explanation["why"],
+                          explanation.get("evidence"), explanation.get("tag"), expl_reason or reason)
+        if source == "llm":
+            ov["verified"] = verification({"headline": ov["headline"], "text": line, "why": ov["why"]},
+                                          {"facts": facts, "e": explanation})
+        return ov
 
-    async def recap(self, kind, snap, key_moments, window_s):
+    async def recap(self, kind, snap, key_moments, window_s, momentum=None):
         facts = match_facts(snap, None, window_s)
         facts["kind"] = kind
+        if momentum:
+            facts["momentum_by_15_min"] = momentum
         facts["key_moments"] = [{"clock": m["clock"], "text": m["alert"]["text"]} for m in key_moments]
         ranked = sorted(snap["players"].values(),
                         key=lambda p: (p["goals"] * 3 + p["assists"] * 2 + p["xg"] + p["tackles_won"] * 0.2),

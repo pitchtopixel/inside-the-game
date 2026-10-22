@@ -13,6 +13,15 @@ const STATS = [['possession_pct', 'Possession %'], ['shots', 'Shots'], ['shots_o
   ['avg_pass_difficulty', 'Pass difficulty'], ['final_third_passes', 'Final-third passes'], ['tackles_won', 'Tackles won'],
   ['interceptions', 'Interceptions'], ['pressures', 'Pressures'], ['fouls', 'Fouls'], ['corners', 'Corners'],
   ['fastest_shot_kmh', 'Fastest shot km/h'], ['avg_ball_speed_kmh', 'Ball speed km/h']];
+const STAT_HELP = {
+  possession_pct: 'Share of time on the ball', shots: 'All attempts on goal', shots_on_target: 'Shots that were scored or saved',
+  xg: 'Expected goals: the chance quality of every shot added up (0.35 = a 35% chance)',
+  big_chances: 'Shots with xG of 0.3 or more', passes: 'Passes attempted', pass_accuracy_pct: 'Share of passes completed',
+  avg_pass_difficulty: '0 = easy short pass, 1 = long, pressured, forward pass', final_third_passes: 'Completed passes into the attacking third',
+  tackles_won: 'Tackles won / attempted', interceptions: 'Passes cut out', pressures: 'Times a player closed down the ball carrier',
+  fouls: 'Fouls committed', corners: 'Corners won', fastest_shot_kmh: 'Fastest shot of the match', avg_ball_speed_kmh: 'Average ball speed of passes' };
+const STORY_TYPES = ['momentum', 'pressure_spell', 'rhythm', 'possession_streak'];
+let replay = { index: 0, playing: false };
 
 function send(m) { if (ws && ws.readyState === 1) ws.send(JSON.stringify(m)); }
 function teamColor(id) { return id === homeId ? 'var(--home)' : id === awayId ? 'var(--away)' : 'var(--accent)'; }
@@ -21,7 +30,7 @@ function minuteOf(clock) { return parseInt(clock, 10) || 0; }
 // ---------- panes & profiles ----------
 function addPane(profile) {
   const node = $('#paneTpl').content.firstElementChild.cloneNode(true);
-  const pane = { node, profile: { ...profile }, pid: null, shown: new Map() };
+  const pane = { node, profile: { ...profile }, pid: null, shown: new Map(), history: new Map(), story: null, recap: null };
   const sel = (c) => $('.' + c, node);
   const opt = (s, v, t) => s.append(new Option(t, v));
 
@@ -45,10 +54,11 @@ function addPane(profile) {
   });
   $('#panes').append(node);
   panes.push(pane);
+  showStart();
 }
 
 function pushProfiles() {
-  panes.forEach((p) => clearOverlays(p));
+  panes.forEach((p) => { clearOverlays(p); p.history.clear(); p.story = null; resetStory(p); });
   send({ cmd: 'set_profiles', profiles: panes.map((p) => p.profile) });
 }
 
@@ -65,6 +75,75 @@ function clearOverlays(pane) {
   pane.shown.forEach((v) => clearTimeout(v.timer));
   pane.shown.clear();
   pane.node.querySelectorAll('.layer').forEach((l) => l.replaceChildren());
+  showStart();
+}
+
+// ---------- first screen ----------
+function showStart() {
+  const show = meta && !replay.playing && replay.index === 0;
+  panes.forEach((p) => {
+    const layer = $('.layer.full', p.node), old = $('.start', layer);
+    if (!show) { if (old) old.remove(); return; }
+    if (old) return;
+    const m = meta.match, card = el('div', 'start');
+    card.append(el('div', 'comp', `${m.competition} · Matchday ${m.matchday} · ${m.venue.name} · ${m.date}`),
+      el('h2', null, `${meta.teams.home.name} vs ${meta.teams.away.name}`),
+      el('p', null, 'A synthetic match replayed live. Microsoft Foundry AI agents spot the key moments, explain why they matter, '
+        + 'and check every claim against the match data.'));
+    const b = el('button', 'primary', '▶ Play replay'); b.onclick = () => send({ cmd: 'play' });
+    card.append(b, el('p', 'comp', 'Tip: Compare viewers shows the same match for an analyst and a casual fan.'));
+    layer.append(card);
+  });
+}
+
+// ---------- AI match story ----------
+function resetStory(pane) {
+  $('.story-body', pane.node).replaceChildren(el('p', 'empty', 'The AI agents explain each key moment here: what happened, '
+    + 'why it matters, and the match data behind it.'));
+  $('.story-hist', pane.node).replaceChildren();
+}
+
+function verifyBox(o) {
+  if (o.source === 'template') return el('div', 'verify wait', '… AI explanation on its way (instant template shown first)');
+  if (o.source !== 'llm' || !o.verified) return el('div', 'verify wait', 'Template text - the AI answer did not pass the checks, so it was not shown');
+  const v = o.verified, box = el('div', 'verify');
+  if (!v.passed) return el('div', 'verify wait', 'Not verified');
+  box.append(el('b', null, '✔ Verified against the match data'));
+  const ul = el('ul');
+  ul.append(el('li', null, v.numbers ? `${v.numbers} number${v.numbers > 1 ? 's' : ''} - each one found in the match data` : 'No numbers used'),
+    el('li', null, v.names.length ? `Names checked: ${v.names.join(', ')}` : 'No names beyond the sentence start'),
+    el('li', null, 'No claims outside the data (seasons, injuries, crowds…)'),
+    el('li', null, 'No contradictions (score, who is on top, shot outcome)'));
+  box.append(ul);
+  return box;
+}
+
+function renderStory(pane, o) {
+  pane.story = o.overlay_id;
+  const body = $('.story-body', pane.node), head = el('div', 'head');
+  const t = el('b', null, `${o.clock}  ${ICON[o.alert_type] || ''} ${o.headline}`); t.style.setProperty('--team', teamColor(o.team));
+  head.append(t, el('span', 'badge ' + o.source, BADGE[o.source] || o.source));
+  const parts = [head];
+  if (o.text && o.text !== o.headline) parts.push(el('div', 't', o.text));
+  if (o.why && o.why !== o.text) parts.push(el('div', 'lbl', 'Why it matters'), el('div', 'w', o.why));
+  if (o.evidence && o.evidence.length) {
+    const ev = el('div', 'ev');
+    o.evidence.forEach((e) => { const s = el('span', null, e.label + ' '); s.append(el('b', null, String(e.value))); ev.append(s); });
+    parts.push(el('div', 'lbl', 'Evidence'), ev);
+  }
+  parts.push(verifyBox(o));
+  body.replaceChildren(...parts);
+  body.dir = o.language === 'ar' ? 'rtl' : '';
+  const hist = [...pane.history.values()].filter((h) => h.overlay_id !== o.overlay_id && h.importance >= 45).sort((a, b) => b.elapsed_s - a.elapsed_s).slice(0, 6);
+  $('.story-hist', pane.node).replaceChildren(...hist.map((h) => {
+    const b = el('button', null, `${h.clock} ${ICON[h.alert_type] || ''} ${h.headline}`);
+    b.style.setProperty('--team', teamColor(h.team)); b.onclick = () => renderStory(pane, h); return b;
+  }));
+  $('.story-who', pane.node).textContent = `${o.mode === 'fan' ? 'fan' : 'analyst'} view · ${meta.options.languages[o.language] || o.language}`;
+}
+
+function showStoryFor(id) {
+  panes.forEach((p) => { const o = p.history.get(id) || timeline.get(id); if (o) renderStory(p, o); });
 }
 
 function buildOverlay(o, slot) {
@@ -98,7 +177,18 @@ function showOverlay(pane, o) {
     return;
   }
   if (o.kind === 'recap') return showRecap(pane, o);
+  if (o.kind === 'moment') {
+    const had = pane.history.get(o.overlay_id);
+    if (!had || o.version >= had.version) {
+      pane.history.set(o.overlay_id, o);
+      const cur = pane.story && pane.history.get(pane.story);
+      // a bigger moment stays on top until something as important happens, or 3 match-minutes pass
+      if (!cur || cur.overlay_id === o.overlay_id
+          || (o.elapsed_s >= cur.elapsed_s && (o.importance >= cur.importance || o.elapsed_s - cur.elapsed_s > 180))) renderStory(pane, o);
+    }
+  }
   const slot = { full_banner: 'banner', lower_third: 'lower', side_panel: 'side' }[o.display.slot] || 'side';
+  if (slot === 'side') return;          // small moments live in the AI match story panel, not on the pitch
   const layer = $('.layer.' + slot, pane.node);
   const prev = pane.shown.get(o.overlay_id);
   if (prev && prev.version > o.version) return;               // never downgrade AI -> template
@@ -119,6 +209,7 @@ function showOverlay(pane, o) {
 }
 
 function showRecap(pane, o) {
+  pane.recap = o; $('#recapBtn').hidden = false;
   const card = el('div', 'ov recap');
   const x = el('span', 'x', '✕'); x.onclick = () => card.remove();
   card.append(x, el('span', 'badge ' + o.source, BADGE[o.source] || o.source), el('h2', null, o.headline), el('div', 't', o.text));
@@ -127,7 +218,7 @@ function showRecap(pane, o) {
   card.append(ul);
   if (o.player_of_the_period) card.append(el('div', 'm', `★ ${o.player_of_the_period.name}: ${o.player_of_the_period.reason}`));
   $('.layer.full', pane.node).replaceChildren(card);
-  setTimeout(() => card.remove(), 25000);
+  if (o.recap_type !== 'full_time') setTimeout(() => card.remove(), 25000);   // the full-time recap stays until closed
 }
 
 // ---------- pitch, stats, timeline ----------
@@ -164,9 +255,14 @@ function onSnapshot(s) {
   $('#clock').textContent = s.clock;
   $('#score').textContent = `${s.score[homeId]} – ${s.score[awayId]}`;
   const box = $('#stats'); box.replaceChildren();
+  if (!s.elapsed_s) {
+    box.append(el('p', 'empty', 'Stats fill in from kick-off. Press ▶ Play replay.'));
+    $('#momLabel').textContent = 'Waiting for kick-off';
+    return;
+  }
   STATS.forEach(([k, label]) => {
     const h = s.teams[homeId][k], a = s.teams[awayId][k];
-    const row = el('div', 'stat');
+    const row = el('div', 'stat'); row.title = STAT_HELP[k] || '';
     const mid = el('div', 'lbl', label);
     const hn = parseFloat(h) || 0, an = parseFloat(a) || 0;
     if (hn + an > 0) {
@@ -188,7 +284,8 @@ function onSnapshot(s) {
   const ag = s.agents, calls = Object.values(ag.llm_calls).reduce((x, y) => x + y, 0);
   const fb = Object.values(ag.fallbacks).reduce((x, y) => x + y, 0);
   const rows = [['LLM calls', calls], ...Object.entries(ag.llm_calls).map(([k, v]) => ['  · ' + k, v]),
-    ['Fallbacks', fb], ['Instant overlay p95', ag.instant_latency_p95_ms + ' ms'], ['Overlays sent', ag.overlays]];
+    ['Answers from cache', ag.cache_hits ?? 0], ['AI drafts blocked & rewritten', ag.blocked_drafts ?? 0],
+    ['Template fallbacks', fb], ['Instant overlay p95', ag.instant_latency_p95_ms + ' ms'], ['Overlays sent', ag.overlays]];
   $('#agentStats').replaceChildren(...rows.map(([k, v]) => { const d = el('div', 'kv'); d.append(el('span', null, k), el('span', null, String(v))); return d; }));
 }
 
@@ -201,9 +298,19 @@ function renderTimeline() {
   $('#moments').replaceChildren(...items.filter((o) => o.importance >= 45).reverse().map((o) => {
     const b = el('button', null, `${o.clock} ${ICON[o.alert_type] || ''} ${o.headline}`);
     b.style.setProperty('--team', teamColor(o.team));
-    b.onclick = () => send({ cmd: 'seek', minute: minuteOf(o.clock) });
+    b.title = o.why || o.text || '';
+    b.onclick = () => { send({ cmd: 'seek', minute: minuteOf(o.clock) }); showStoryFor(o.overlay_id); };
     return b;
   }));
+  // Momentum card: what changed most recently, and why
+  const last = items.filter((o) => STORY_TYPES.includes(o.alert_type)).pop(), why = $('#momWhy');
+  why.hidden = !last;
+  if (last) {
+    why.style.setProperty('--team', teamColor(last.team));
+    why.replaceChildren(el('b', null, `What changed · ${last.clock} ${last.headline}`));
+    if (last.why) why.append(el('div', null, last.why));
+    why.onclick = () => showStoryFor(last.overlay_id);
+  }
 }
 
 // ---------- connection ----------
@@ -234,9 +341,9 @@ function connect() {
       case 'timeline_item': timeline.set(m.item.overlay_id, m.item); renderTimeline(); break;
       case 'reset': panes.forEach(clearOverlays); break;
       case 'status':
-        playing = m.playing; $('#playBtn').textContent = playing ? '⏸' : '▶';
-        $('#speed').value = String(m.speed); break;
-      case 'end': playing = false; $('#playBtn').textContent = '▶'; break;
+        replay = m; playing = m.playing; setPlayBtn();
+        $('#speed').value = String(m.speed); showStart(); break;
+      case 'end': playing = false; setPlayBtn(); break;
       case 'busy': $('#provider').textContent = `demo busy (${m.max} viewers) - retrying…`; retryMs = 15000; break;
       case 'idle': $('#provider').textContent = `paused after ${m.minutes} min idle - reload the page to continue`; retryMs = 0; break;
     }
@@ -244,7 +351,14 @@ function connect() {
   ws.onclose = () => { if (retryMs) setTimeout(connect, retryMs); };
 }
 
+function setPlayBtn() {
+  const b = $('#playBtn');
+  b.textContent = playing ? '⏸ Pause' : replay.index ? '▶ Play' : '▶ Play replay';
+  b.classList.toggle('primary', !playing);
+}
+
 $('#playBtn').onclick = () => send({ cmd: playing ? 'pause' : 'play' });
+$('#recapBtn').onclick = () => panes.forEach((p) => { if (p.recap) showRecap(p, p.recap); });
 $('#speed').onchange = (e) => send({ cmd: 'speed', value: +e.target.value });
 $('#jumpBtn').onclick = () => send({ cmd: 'seek', minute: +$('#jumpMin').value });
 $('#restartBtn').onclick = () => send({ cmd: 'restart' });

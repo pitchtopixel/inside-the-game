@@ -10,7 +10,7 @@
 <header class="topbar">
   <div class="brand">
     <div class="logo">◆</div>
-    <div><b>Inside the Match</b><small>AI match intelligence · synthetic data</small></div>
+    <div><b>Inside the Match</b><small>AI that explains the story behind the match · synthetic data</small></div>
   </div>
   <div class="scorebox">
     <span class="team" id="homeTeam"><i></i><b>—</b></span>
@@ -28,7 +28,8 @@
     <label class="jump">min <input id="jumpMin" type="number" min="0" max="95" value="45"></label>
     <button id="jumpBtn">Go</button>
     <button id="restartBtn" title="Restart">⟲</button>
-    <button id="compareBtn" class="toggle" title="Show two viewers side by side">Compare viewers</button>
+    <button id="recapBtn" hidden title="Show the latest AI recap">Match recap</button>
+    <button id="compareBtn" class="toggle" title="Same match, two viewers side by side: analyst vs fan">Compare viewers</button>
   </div>
 </header>
 
@@ -38,17 +39,23 @@
     <div class="card">
       <h3>Live stats</h3>
       <div class="stat-head"><span id="sHome">Home</span><span></span><span id="sAway">Away</span></div>
-      <div id="stats"></div>
+      <div id="stats"><p class="empty">Stats fill in from kick-off. Press ▶ Play replay.</p></div>
     </div>
     <div class="card">
       <h3>Momentum <small>threat share, last 5 min</small></h3>
       <div class="bar"><div id="momHome"></div><div id="momAway"></div></div>
-      <div class="row"><span id="momLabel">—</span><span id="rhythm" class="chip">balanced</span></div>
+      <div class="row"><span id="momLabel">Waiting for kick-off</span><span id="rhythm" class="chip"
+        title="Control = few turnovers, long spells on the ball. Chaos = the ball keeps changing hands.">balanced</span></div>
+      <p class="note">Who is creating the danger: shots (weighted by xG), final-third passes and pressing in the opponent's half.
+        A team with 65%+ of the threat is "on top".</p>
+      <div id="momWhy" class="why-changed" hidden></div>
     </div>
     <div class="card agents">
       <h3>Agents <small id="provider"></small></h3>
       <div id="agentStats"></div>
-      <p class="note">Every AI number is checked against match data. Failures fall back to templates.</p>
+      <p class="note">Every AI answer is checked before it is shown: numbers must match the match data, names must be real,
+        no claims we have no data for, no contradictions. A rejected draft is sent back with the reason and rewritten;
+        if it still fails, a safe template is shown.</p>
     </div>
   </aside>
 </main>
@@ -89,6 +96,12 @@
       <div class="momentum-strip"><div class="mh"></div><div class="ma"></div></div>
     </div>
     <div class="ticker"><span class="ticker-label">Tracker</span><span class="ticker-text">Pick a player or metric to follow</span></div>
+    <div class="story">
+      <div class="story-h"><span>AI match story</span><small class="story-who"></small></div>
+      <div class="story-body"><p class="empty">The AI agents explain each key moment here: what happened, why it matters,
+        and the match data behind it. Press ▶ Play replay.</p></div>
+      <div class="story-hist"></div>
+    </div>
   </div>
 </template>
 <script src="/static/app.js"></script>

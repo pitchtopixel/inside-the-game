@@ -118,13 +118,15 @@ class Session:
                    key=lambda p: p["attributes"]["shot_skill"])
         presets = [
             {"label": "Analyst · English", "profile": {"mode": "analyst", "language": "en"}},
+            {"label": "Fan · English", "profile": {"mode": "fan", "language": "en"}},
             {"label": f"Fan · Español · {teams['away']['short_name']}",
              "profile": {"mode": "fan", "language": "es", "club": away, "metric": "possession"}},
             {"label": f"Player focus · {star['short_name']}",
              "profile": {"mode": "fan", "language": "en", "player": star["player_id"], "metric": "xg"}},
             {"label": f"Fan · हिन्दी · {teams['home']['short_name']}", "profile": {"mode": "fan", "language": "hi", "club": home}},
         ]
-        return {"kind": "meta", "match": self.meta["match"], "teams": teams, "presets": presets,
+        match = {k: v for k, v in self.meta["match"].items() if k != "final_score"}  # no spoilers
+        return {"kind": "meta", "match": match, "teams": teams, "presets": presets,
                 "llm_provider": os.getenv("LLM_PROVIDER", "mock"),
                 "options": {"languages": LANGUAGES, "team_metrics": {k: v[0] for k, v in TEAM_METRICS.items()},
                             "player_metrics": {k: v[0] for k, v in PLAYER_METRICS.items()}}}
