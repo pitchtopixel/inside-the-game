@@ -168,10 +168,13 @@ def contradiction_rules():
     saved = {**facts, "moment": {"type": "big_chance", "team_name": "Riverside", "data": {"outcome": "off_target"}}}
     wrong = [("Northgate lead the game.", facts), ("Riverside trail after the break.", facts),
              ("A thumping header from Arribas!", facts), ("Northgate are on top now.", facts),
-             ("It finishes all square.", facts), ("Brilliant save by the keeper.", saved)]
+             ("It finishes all square.", facts), ("Northgate equalise!", facts),
+             ("Brilliant save by the keeper.", saved)]
+    # aims are not claims (13i: a real model's "Northgate push to equalise" was a false alarm)
     right = [("Riverside lead 1-0.", facts), ("Northgate trail and need a response.", facts),
              ("Arribas fires it in with his right foot.", facts), ("Riverside are on top.", facts),
-             ("The shot goes wide.", saved)]
+             ("The shot goes wide.", saved), ("Northgate push to equalise.", facts),
+             ("Northgate are chasing an equalizer.", facts), ("Northgate need a goal to draw level.", facts)]
     missed = [s for s, f in wrong if not contradictions({"t": s}, f)]
     false_alarms = [s for s, f in right if contradictions({"t": s}, f)]
     check("21. contradictions caught, true claims pass", not missed and not false_alarms,
@@ -224,6 +227,7 @@ def combo_profiles(data):
         {"profile_id": "c5_fan_hi", "mode": "fan", "language": "hi", "metric": "pressures"},
         {"profile_id": "c6_analyst_en_away", "mode": "analyst", "language": "en", "club": away["team_id"],
          "player": pick(home, ["LW", "RW"]), "metric": "pass_accuracy_player"},
+        {"profile_id": "c7_broadcaster_en", "mode": "broadcaster", "language": "en", "metric": "xg"},
     ]
 
 
@@ -258,8 +262,19 @@ async def combo_run(data, client):
             problems.append(p["profile_id"])
         if p["language"] != "en" and v2:
             samples.append((p["language"], v2[0]["clock"], v2[0]["headline"], v2[0]["text"]))
-    check("25. every option value works (6 combination viewers: languages, clubs, players, metrics)", not problems,
+    check("25. every option value works (7 combination viewers: modes, languages, clubs, players, metrics)", not problems,
           f"problems: {problems}" if problems else f"{sum(orch.summary()['llm_calls'].values())} LLM calls")
+    # Broadcaster: neutral on-air captions - fewer moments than an analyst, more than a fan, AI-rewritten
+    bc = [o for o in latest(orch, "c7_broadcaster_en") if o["kind"] == "moment"]
+    fan = [o for o in latest(orch, "c5_fan_hi") if o["kind"] == "moment"]
+    low = [o for o in bc if o["importance"] < 40 and o["alert_type"] != "goal"]
+    rewritten = [o for o in bc if o["version"] == 2 and o["source"] == "llm" and o["mode"] == "broadcaster"]
+    check("26. broadcaster view: between fan and analyst, on-air rewrites", len(fan) < len(bc) < len(ref) and not low
+          and bool(rewritten), f"fan {len(fan)} < broadcaster {len(bc)} < analyst {len(ref)}, low {len(low)}, "
+          f"rewritten {len(rewritten)}")
+    if rewritten and not isinstance(client, MockChatClient):
+        o = rewritten[0]
+        samples.append(("broadcaster", o["clock"], o["headline"], f"{o['text']} | talking point: {o['why']}"))
     print("\n  Sample captions (read for language quality):")
     for lang, clock, h, t in samples:
         print(f"  [{lang}] {clock} {h} | {t}")

@@ -1,7 +1,7 @@
 """
 Personalizer agent: one stream of intelligence, a different experience per viewer.
 
-Profile: {"profile_id", "mode": "analyst"|"fan", "language": "en"|"es"|"hi"|"ar"|...,
+Profile: {"profile_id", "mode": "analyst"|"fan"|"broadcaster", "language": "en"|"es"|"hi"|"ar"|...,
           "club": team_id|None, "player": player_id|None, "metric": "xg"|"possession"|...|None}
 Rules decide WHAT a viewer sees (filtering, highlights, metric, player tracker); the LLM rewrites HOW it
 reads (fan tone, translation). Analyst + English needs no LLM call.
@@ -22,6 +22,7 @@ PLAYER_METRICS = {"top_speed": ("Top speed km/h", "top_speed_kmh"), "distance": 
 NON_LATIN = {"ar", "hi"}   # scripts where a model tends to transliterate names - those answers must keep them
 DEFAULT_PROFILE = {"mode": "analyst", "language": "en", "club": None, "player": None, "metric": None}
 FAN_MIN_IMPORTANCE = 60
+BROADCASTER_MIN_IMPORTANCE = 40   # on-air: fewer than an analyst, more than a fan
 FOCUS_MIN_IMPORTANCE = 70   # player-focus mode: other moments only if big
 
 INSTRUCTIONS = """You adapt live football graphics text for one viewer.
@@ -36,10 +37,24 @@ Input JSON: {"task": "personalize", "profile": {"mode", "language", "club_name",
 - Sentence case: capitalise only the first word and names.
 Reply with JSON only: {"headline": str, "text": str, "why": str}"""
 
+# Own prompt (own cache fingerprint), so adding broadcasters does not invalidate the saved fan / analyst answers
+BROADCASTER_INSTRUCTIONS = """You write live football graphics text for a TV broadcast and its commentator.
+Input JSON: {"task": "personalize", "profile": {"mode": "broadcaster", "language"}, "overlay": {"headline", "text", "why"}}
+- Neutral: no side, no "we" or "our".
+- headline: on-screen caption, at most 8 words.
+- text: one sentence the commentator can read on air.
+- why: one talking point that gives the commentator context; keep the overlay's numbers.
+- Write in the profile language (natural broadcast style).
+- Never add facts, numbers or names that are not in the overlay; keep player and team names exactly as given,
+  in Latin letters, in every language (Arabic and Hindi too): write "Arribas", never translate or transliterate a name.
+- Sentence case: capitalise only the first word and names.
+Reply with JSON only: {"headline": str, "text": str, "why": str}"""
+
 
 class Personalizer:
     def __init__(self, client, metrics, timeout_s, profiles, team_names, player_names=None):
         self.agent = Agent(client, INSTRUCTIONS, name="personalizer")
+        self.broadcaster = Agent(client, BROADCASTER_INSTRUCTIONS, name="personalizer")
         self.metrics, self.timeout_s = metrics, timeout_s
         self.profiles = {p["profile_id"]: {**DEFAULT_PROFILE, **p} for p in profiles}
         self.team_names = team_names
@@ -57,7 +72,7 @@ class Personalizer:
             return True
         if ov["alert_type"] == "goal":
             return True
-        need = FAN_MIN_IMPORTANCE if prof["mode"] == "fan" else 0
+        need = {"fan": FAN_MIN_IMPORTANCE, "broadcaster": BROADCASTER_MIN_IMPORTANCE}.get(prof["mode"], 0)
         if prof["player"]:
             need = max(need, FOCUS_MIN_IMPORTANCE)
         return ov["importance"] >= need
@@ -109,7 +124,8 @@ class Personalizer:
                                    "club_name": self.team_names.get(prof["club"]),
                                    "player_name": snap["players"].get(prof["player"], {}).get("name")}}
             keep = headline_names(fields, facts) if prof["language"] in NON_LATIN else ()
-            data, reason = await call_agent(self.agent, payload, ("headline", "text", "why"),
+            agent = self.broadcaster if prof["mode"] == "broadcaster" else self.agent
+            data, reason = await call_agent(agent, payload, ("headline", "text", "why"),
                                             {"overlay": fields, "facts": facts}, self.metrics, self.timeout_s,
                                             keep_names=keep)
             self.cache[key] = (data, reason)

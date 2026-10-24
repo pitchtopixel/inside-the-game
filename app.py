@@ -122,6 +122,7 @@ class Session:
         presets = [
             {"label": "Analyst · English", "profile": {"mode": "analyst", "language": "en"}},
             {"label": "Fan · English", "profile": {"mode": "fan", "language": "en"}},
+            {"label": "Broadcaster · English", "profile": {"mode": "broadcaster", "language": "en"}},
             {"label": f"Fan · Español · {teams['away']['short_name']}",
              "profile": {"mode": "fan", "language": "es", "club": away, "metric": "possession"}},
             {"label": f"Player focus · {star['short_name']}",

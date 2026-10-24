@@ -181,6 +181,9 @@ FOOT = re.compile(r"\b(left|right)[- ]?foot(ed)?\b|\bvolley\w*\b", re.I)
 SAVE = re.compile(r"\b(saves?|saved|parried|stopped by the (keeper|goalkeeper))\b", re.I)
 MISS = re.compile(r"\b(wide|off target|over the bar|hits? the (post|bar)|blocked)\b", re.I)
 LEVEL = re.compile(r"\b(all square|level at|on level terms|equalis\w*|equaliz\w*)\b", re.I)
+# An aim, not a claim: "push to equalise", "chasing an equaliser", "to draw level"
+LEVEL_AIM = re.compile(r"\b(to (equali[sz]e|draw level|get level|level (it|the score))|"
+                       r"(for|chasing|seeking|hunting|looking for|search for) (an|the) equali[sz]er)\b", re.I)
 MOMENTUM_TYPES = ("momentum", "rhythm", "pressure_spell", "possession_streak")
 
 
@@ -209,7 +212,7 @@ def contradictions(output, facts):
         is_recap = _find(facts, "key_moments") is not None  # recaps retell earlier phases
         if claims_on_top and on_top != team and not about_this and not is_recap:
             bad.append(f"{team} are not on top")
-    if LEVEL.search(text) and len(set(score.values())) > 1:
+    if LEVEL.search(LEVEL_AIM.sub("", text)) and len(set(score.values())) > 1:
         bad.append("the score is not level")
     body = data.get("body_part")
     if body == "head" and FOOT.search(text):

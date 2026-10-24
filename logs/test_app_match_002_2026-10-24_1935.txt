@@ -1,0 +1,22 @@
+log: logs\test_app_match_002_2026-10-24_1935.txt
+
+== Viewer messages ==
+analyst: {'meta': 1, 'timeline': 2, 'snapshot': 113, 'status': 117, 'profiles': 1, 'event': 1980, 'overlays': 67, 'timeline_item': 65, 'end': 1, 'reset': 1}
+fan: {'meta': 1, 'timeline': 1, 'snapshot': 113, 'status': 116, 'profiles': 1, 'event': 1980, 'timeline_item': 65, 'overlays': 50, 'end': 1}
+
+== Checks ==
+  [PASS] 1. viewer receives every match event  1980/1980
+  [PASS] 2. live stats snapshots stream (>= 49, one per 2 match-minutes)  113
+  [PASS] 3. each viewer only gets its own profile's overlays  {'p-analyst-en-_-_-_'} / {'p-fan-es-EVW-_-possession'}
+  [PASS] 4. fan sees fewer moments than analyst  fan 15 vs analyst 36
+  [PASS] 5. template overlays upgraded to AI versions (v1 -> v2)  29 upgraded
+  [PASS] 6. fan overlays personalized (Spanish, club, metric)  30 overlays
+  [PASS] 7. both viewers get half-time and full-time recaps  {'half_time': 2, 'full_time': 2}
+  [PASS] 8. metric ticker reaches the fan viewer  20
+  [PASS] 9. timeline items stream to viewers  65
+  [PASS] 10. seek to 60' rebuilds state and timeline  snapshot 58:58, timeline 20 moments
+  [PASS] 11. each browser has its own replay (analyst's seek did not reach the fan)  analyst resets 1, fan resets 0
+  [PASS] 12. a later viewer of the same match reuses cached answers (no new model calls)  model calls 0, cache hits 60
+  [PASS] 13. sixth browser at once is told the demo is busy  ['meta', 'meta', 'meta', 'meta', 'meta', 'busy']
+
+13/13 checks passed -> PASS

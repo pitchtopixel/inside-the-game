@@ -125,7 +125,7 @@ function renderStory(pane, o) {
   head.append(t, el('span', 'badge ' + o.source, BADGE[o.source] || o.source));
   const parts = [head];
   if (o.text && o.text !== o.headline) parts.push(el('div', 't', o.text));
-  if (o.why && o.why !== o.text) parts.push(el('div', 'lbl', 'Why it matters'), el('div', 'w', o.why));
+  if (o.why && o.why !== o.text) parts.push(el('div', 'lbl', o.mode === 'broadcaster' ? 'Talking point' : 'Why it matters'), el('div', 'w', o.why));
   if (o.evidence && o.evidence.length) {
     const ev = el('div', 'ev');
     o.evidence.forEach((e) => { const s = el('span', null, e.label + ' '); s.append(el('b', null, String(e.value))); ev.append(s); });
@@ -139,7 +139,7 @@ function renderStory(pane, o) {
     const b = el('button', null, `${h.clock} ${ICON[h.alert_type] || ''} ${h.headline}`);
     b.style.setProperty('--team', teamColor(h.team)); b.onclick = () => renderStory(pane, h); return b;
   }));
-  $('.story-who', pane.node).textContent = `${o.mode === 'fan' ? 'fan' : 'analyst'} view · ${meta.options.languages[o.language] || o.language}`;
+  $('.story-who', pane.node).textContent = `${o.mode || 'analyst'} view ·${meta.options.languages[o.language] || o.language}`;
 }
 
 function showStoryFor(id) {
@@ -246,7 +246,7 @@ function onEvent(e) {
       tag.style.setProperty('--team', teamColor(e.team));
       tag.setAttribute('x', Math.min(toX + 1.6, 96)); tag.setAttribute('y', Math.max(toY - 1.8, 2.5));
     }
-    const text = shotInfo || sprintInfo || (p.profile.mode === 'analyst' ? passInfo : null);
+    const text = shotInfo || sprintInfo || (p.profile.mode !== 'fan' ? passInfo : null);
     if (text) info.textContent = text;
   });
   $('#progress').style.width = Math.min(100, 100 * e.elapsed_s / matchEnd) + '%';

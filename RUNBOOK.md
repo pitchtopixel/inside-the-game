@@ -110,7 +110,7 @@ python test_agents.py --match match_002 --log # another match (profiles: away-cl
 python test_agents.py --show                  # + print sample overlays
 python test_agents.py --foundry --log         # real Foundry model (needs .env + az login; a few cents)
 ```
-**Expect:** run summary (LLM calls, cache hits, blocked drafts, fallbacks, rejected names, latency, overlays), checks → `25/25 checks passed -> PASS` (mock), `17/17` (Foundry)
+**Expect:** run summary (LLM calls, cache hits, blocked drafts, fallbacks, rejected names, latency, overlays), checks → `26/26 checks passed -> PASS` (mock), `17/17` (Foundry, 22 Oct - before checks 21 update and 26)
 
 **Checks:**
 1. Every alert became a moment the analyst sees
@@ -128,15 +128,18 @@ python test_agents.py --foundry --log         # real Foundry model (needs .env +
 13. Ingest agent rejects a duplicate event
 14–20. Model fails / returns bad JSON / invents numbers / invents names / makes out-of-scope claims /
 contradicts the data / is too slow → template fallback, nothing lost, no invented text on screen
-21. Contradiction rules: 6 wrong sentences caught, 5 true sentences pass (no false alarms)
+21. Contradiction rules: 7 wrong sentences caught, 8 true sentences pass (no false alarms) - incl. aims such as
+    "push to equalise" / "to draw level", which are not claims that the score is level (13i)
 22. Name rules: invented names caught, known names and possessives ("Riverside's") pass
 23. Lower-cased names get their capitals back (a real model once wrote a whole recap in lower case)
 24. Arabic / Hindi answers must keep names in Latin letters (a real model transliterated them, and translated "Northgate")
-25. Every option value works: 6 combination viewers (French, Portuguese, Arabic, Spanish, Hindi; home / away club;
+25. Every option value works: 7 combination viewers (all 3 modes; French, Portuguese, Arabic, Spanish, Hindi; home / away club;
     player focus incl. a substitute; all 8 metrics) - language, club highlight, metric line, player moments, recaps.
     Prints one sample caption per language to read for quality
+26. Broadcaster view: fewer moments than an analyst, more than a fan (importance ≥ 40), rewritten as on-air captions
+    (neutral headline ≤ 8 words, one sentence to read on air, a talking point for the commentator)
 
-**Last result (22 Oct, mock):** 25/25 PASS on match_001 and match_002 (logs `logs/test_agents_mock_match_00*_2026-10-22_20*.txt`)
+**Last result (24 Oct, mock):** 26/26 PASS on match_001 and match_002 (logs `logs/test_agents_mock_match_00*_2026-10-24_1934.txt`)
 **Last result (22 Oct, Foundry, match_001):** 17/17 PASS · combination viewers rerun after the name fix: all 6 ok, Arabic and Hindi
 keep "Arribas" / "Riverside" in Latin letters · logs: `logs/test_agents_foundry_match_001_2026-10-22_2003.txt`,
 `logs/test_agents_foundry_combos_match_001_2026-10-22_2015.txt`
@@ -182,7 +185,9 @@ python app.py --match data/synthetic/match_002.json   # another match
 - Momentum card: what "threat share" means + **What changed** (latest momentum / pressure / rhythm moment); stat definitions on hover
 - Agents card: model calls, answers from cache, AI drafts blocked & rewritten, template fallbacks
 - Full-time recap stays until closed; **Match recap** button reopens it. Recaps get momentum per 15 minutes (`momentum_by_15_min`)
-- Compare viewers = Analyst · English vs Fan · English (same facts, different depth); Spanish / Hindi / player focus are presets
+- Compare viewers = Analyst · English vs Fan · English (same facts, different depth); Broadcaster / Spanish / Hindi / player focus are presets
+- **Broadcaster** mode: neutral on-air caption, one sentence to read on air and a *Talking point* for the commentator;
+  its own prompt (so adding it kept every saved fan / analyst answer)
 - `--mock-latency 1.0` (default) delays the mock model so the template → AI upgrade is visible; ignored with Foundry
 - Port 8600 (the streamer test page stays on 8500); `--host 0.0.0.0` inside a container
 - Each browser gets its own replay (max 5 at once, `--max-sessions`); a replay closes after 10 min with no clicks while paused
@@ -196,8 +201,8 @@ narrator's task, which is part of the personalizer's, so changes cascade). Then 
 python prebake_cache.py --log                 # every match x the app's preset viewers -> data/cache/answers.json
 ```
 Cache keys include a fingerprint of each agent's instructions, so a prompt change never reuses old answers.
-**Last result (22 Oct):** 274 answers saved (personalizer regenerated after the name rule) · live presets 0 model calls ·
-log: `logs/prebake_cache_2026-10-22_2010.txt`
+**Last result (24 Oct):** 329 answers saved (65 new, Broadcaster · English preset; everything else reused) · 1 broadcaster
+draft blocked, template shown · live presets 0 model calls · log: `logs/prebake_cache_2026-10-24_1935.txt`
 
 **Automated test** (starts its own server on port 8601):
 ```powershell
@@ -221,9 +226,9 @@ python test_app.py --match match_002 --log
 12. A later viewer of the same match reuses cached answers (0 model calls)
 13. A sixth browser at once is told the demo is busy
 
-**Last result (22 Oct, mock):**
-- match_001: 13/13 PASS (later viewer: 0 model calls, 44 cache hits) · log: `logs/test_app_match_001_2026-10-22_1350.txt`
-- match_002: 13/13 PASS · log: `logs/test_app_match_002_2026-10-22_1351.txt`
+**Last result (24 Oct, mock):**
+- match_001: 13/13 PASS · log: `logs/test_app_match_001_2026-10-24_1934.txt`
+- match_002: 13/13 PASS · log: `logs/test_app_match_002_2026-10-24_1935.txt`
 - Screenshots (Foundry): `docs/img/ui_start.png` (first screen), `docs/img/ui_story_compare.png` (analyst vs fan, AI story + Verified box)
 
 ## 6. Container (local)
@@ -266,3 +271,6 @@ GHCR instead of Azure Container Registry, preset viewers answered from the preba
 **Last result (22 Oct, image v8 - no-cache headers; player-focus preset = most shots; player tracker in player focus; names kept in Arabic / Hindi):** player-focus preset 0 model calls, 53 cache hits · page HTTP 200 (0.8 s warm, ~22 s after scale-to-zero) · presets (analyst + English fan):
 **0 model calls**, 59 cache hits, 36 verified AI overlays, 4 recaps · custom viewer (English fan of Riverside): 16 Foundry calls
 via managed identity, 1 draft blocked & rewritten, 0 fallbacks
+
+**Last result (24 Oct, image v9 - Broadcaster mode + preset; 13i level-score fix):** Broadcaster · English + Player focus:
+**0 model calls**, 76 cache hits, 23 broadcaster AI captions
