@@ -1,0 +1,15 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentParameters.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "image": { "value": "ghcr.io/pitchtopixel/inside-the-game:v10" },
+    "foundryAccountName": { "value": "inside-the-game-resource-jayak" },
+    "foundryProjectName": { "value": "inside-the-game" },
+    "foundryModel": { "value": "gpt-4.1-mini" },
+    "appInsightsName": { "value": "inside-the-game-resource-jayak-appinsights" },
+    "foundryRoleAssignmentName": { "value": "6173a127-aba1-4162-a60f-2718249a1592" },
+    "minReplicas": { "value": 0 },
+    "maxReplicas": { "value": 3 },
+    "concurrentRequestsPerReplica": { "value": 4 }
+  }
+}

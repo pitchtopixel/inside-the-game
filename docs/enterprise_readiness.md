@@ -56,10 +56,10 @@ Only moments with importance ≥ 45 are explained (~21 per match). Hosting: Cont
 ## 6. Scale: what is a setting, and what is work
 | Today | Why | To scale |
 |---|---|---|
-| 1 replica, max 5 viewers at once | Free-trial budget | `az containerapp update --max-replicas N`: one setting. The answer cache moves to Redis so replicas share it |
+| Autoscale 0→3 replicas (5 viewers each), health probes | Free-trial budget | `maxReplicas` in `infra/main.bicep`: one setting. The answer cache moves to Redis so replicas share it |
 | One region (East US 2) | Demo | Foundry and Container Apps in the partner's region (data residency) |
 | Replay feed over WebSocket | Hackathon | Azure Event Hubs for live ingest |
-| Manual deploy | Review step | Release gate already builds the image; add staging + approval to deploy |
+| Manual deploy from a Bicep template (`what-if` first) | Review step | Release gate already builds the image; add staging + approval to deploy |
 
 ## 7. What's next
 1. Foundry Groundedness evaluator: offline today (321/329 grounded, 98%, [groundedness_report.md](groundedness_report.md)); next, run it on a sample of live answers each match.

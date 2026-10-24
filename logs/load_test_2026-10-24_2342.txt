@@ -1,0 +1,49 @@
+log: logs\load_test_2026-10-24_2342.txt
+url wss://inside-the-game.delightfulsand-21c23dc9.eastus2.azurecontainerapps.io/ws · steps [5, 10, 15, 20] · 90s each · speed 20.0
+replicas before start: None
+  t=   0s  viewers  5  watching  0  waiting  5  replicas None
+  t=  15s  viewers  5  watching  0  waiting  5  replicas None
+  t=  30s  viewers  5  watching  0  waiting  5  replicas None
+  t=  45s  viewers  5  watching  5  waiting  0  replicas None
+  t=  60s  viewers  5  watching  5  waiting  0  replicas None
+  t=  75s  viewers  5  watching  5  waiting  0  replicas None
+  t=  90s  viewers 10  watching  5  waiting  5  replicas None
+  t= 105s  viewers 10  watching  9  waiting  1  replicas None
+  t= 120s  viewers 10  watching 10  waiting  0  replicas None
+  t= 136s  viewers 10  watching 10  waiting  0  replicas None
+  t= 151s  viewers 10  watching 10  waiting  0  replicas None
+  t= 166s  viewers 10  watching 10  waiting  0  replicas None
+  t= 181s  viewers 15  watching 10  waiting  5  replicas None
+  t= 196s  viewers 15  watching 15  waiting  0  replicas None
+  t= 211s  viewers 15  watching 15  waiting  0  replicas None
+  t= 226s  viewers 15  watching 15  waiting  0  replicas None
+  t= 241s  viewers 15  watching 15  waiting  0  replicas None
+  t= 256s  viewers 15  watching 15  waiting  0  replicas None
+  t= 271s  viewers 20  watching 15  waiting  5  replicas None
+  t= 286s  viewers 20  watching 15  waiting  5  replicas None
+  t= 301s  viewers 20  watching 15  waiting  5  replicas None
+  t= 316s  viewers 20  watching 15  waiting  5  replicas None
+  t= 331s  viewers 20  watching 15  waiting  5  replicas None
+  t= 346s  viewers 20  watching 15  waiting  5  replicas None
+
+== Per step (at the end of each step) ==
+| Viewers | Watching | Still waiting | Replicas |
+|---|---|---|---|
+| 5 | 5 | 0 | None |
+| 10 | 10 | 0 | None |
+| 15 | 15 | 0 | None |
+| 20 | 15 | 5 | None |
+
+== Summary ==
+| Measure | Value |
+|---|---|
+| Viewers who got in | 15 of 20 |
+| Viewers who had to retry ("busy") | 10 (74 retries) |
+| Time to get in: median / p95 / max | 9.4 s / 39.1 s / 39.2 s |
+| First overlay after play (first moment at 2:26 match time) | 7.8 s median |
+| Instant overlay latency p95 (server, per viewer): median / worst | 9.7 ms / 16.0 ms |
+| Dropped while watching | 0 |
+| Gave up (never got in) | 0 |
+| Overlays received | 600 |
+| Model calls (all viewers) / cache hits | 0 / 507 |
+| Max replicas seen | None |

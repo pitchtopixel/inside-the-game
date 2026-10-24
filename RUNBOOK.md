@@ -338,3 +338,33 @@ python eval_single_agent.py --log              # real Foundry model, ~160 calls 
 **Last result (24 Oct 22:42, gpt-4.1-mini, match_001, 41 overlays)** - multi / single / single + retry:
 viewer sees the moment p95 4.7 ms / 3.2 s / 4.2 s · still wrong 0 / 11 / 1 · calls 69 / 41 / 53 · tokens 50K / 34K / 45K for 3 profiles;
 single + retry costlier from ~3 distinct profiles (2.6x at 200) · log: `logs/eval_single_agent_match_001_2026-10-24_2242.txt` · details: docs/agents.md
+
+## 10. Infrastructure as code — `infra/main.bicep`
+Describes the Container Apps environment, the app (managed identity, **HTTP autoscale 0→3 replicas at 4 viewers each**,
+**liveness + readiness probes** on `/`), the "Foundry User" role, the e-mail action group and the fallback-rate alert.
+Foundry and Application Insights are referenced as existing. Token and e-mail are deploy-time parameters (not in the repo).
+```powershell
+az bicep install                                   # once
+$t = (Get-Clipboard).Trim()                        # GHCR token, classic, read:packages only
+curl.exe -s -u "pitchtopixel:$t" "https://ghcr.io/token?scope=repository:pitchtopixel/inside-the-game:pull"   # must print {"token":...}
+az deployment group what-if -g rg-jayakarayil123-3358 -f infra/main.bicep -p infra/main.parameters.json -p registryPassword=$t alertEmail=<email>
+az deployment group create  -g rg-jayakarayil123-3358 -f infra/main.bicep -p infra/main.parameters.json -p registryPassword=$t alertEmail=<email>
+```
+**Last result (24 Oct):** what-if = only max replicas 1→3, scale rule `viewers`, probes (rest: Azure defaults) · deployed 23:08 IST.
+
+**Incident (24 Oct, ~25 min down):** the deploy replaced the registry secret with a token GHCR rejected → new revision
+`ImagePullFailure` / `ActivationFailed`, old revision could not pull either. Diagnosed with
+`az containerapp logs show --type system`. Fixed: new read-only token (`read:packages`) →
+`az containerapp secret set ... registry-password=$t` → `az containerapp update ... --revision-suffix bicep2` (fresh revision; a
+restart did not retry the failed one). Result: `inside-the-game--bicep2` Running · Healthy, HTTP 200, 329 answers, tracing on.
+**Lesson:** test the token before every deploy (curl line above); after 26 Oct make the package public and drop the registry login.
+
+## 11. Load test — `load_test.py`
+Ramps viewers on the live app (preset profiles → 0 model calls); `busy` viewers retry every 5 s; replicas counted every ~15 s.
+```powershell
+python load_test.py --log                                   # live: 5 -> 10 -> 15 -> 20 viewers, 90 s each (~6 min)
+python load_test.py --url ws://127.0.0.1:8600/ws --no-replicas --steps 2 4 --step-s 15   # local check
+```
+**Last result (24 Oct 23:54, cold start from 0 replicas):** replicas 0→1→2→3, 15/15 viewers watching, 20 → 5 wait (`busy`), 0 dropped,
+instant overlay p95 10 ms (worst 16 ms), time to get in median 15.7 s / max 35 s, 606 overlays, 0 model calls / 510 cache hits;
+scaled 3→0 within ~6 min after the first run · log: `logs/load_test_2026-10-24_2354.txt` (warm run: `..._2342.txt`) · details: docs/scale_test.md

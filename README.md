@@ -78,7 +78,8 @@ flowchart LR
 |---|---|
 | **Microsoft Foundry** | Hosts the model (`gpt-4.1-mini`); model swap by deployment name; default content filter (DefaultV2); model monitor (requests, tokens, cost); **Tracing** of every agent and model call; **Groundedness evaluator** (98% of answers grounded) |
 | **Microsoft Agent Framework** | Three workflows (`WorkflowBuilder`) with typed handoffs between 6 agents; built-in Foundry chat client; OpenTelemetry spans |
-| **Azure Container Apps** | Hosts the whole live pipeline and UI; scale to zero; system-assigned managed identity |
+| **Azure Container Apps** | Hosts the whole live pipeline and UI; HTTP autoscale 0→3 replicas (4 viewers each), liveness + readiness probes; system-assigned managed identity |
+| **Bicep (infrastructure as code)** | `infra/main.bicep`: environment, app, identity, Foundry role, action group and alert in one template; `what-if` before every deploy |
 | **Microsoft Entra ID** | No API keys anywhere: `az login` locally, managed identity + "Foundry User" role in Azure |
 | **Application Insights + Azure Monitor** | Agent traces, one log per model answer, alert when more than 10% of answers fall back to templates |
 | **GitHub Actions** | Release gate: 4 test suites must pass before the container image builds |
@@ -141,6 +142,7 @@ Details: [docs/agents.md](docs/agents.md) · data formats: [docs/schemas.md](doc
 | Instant overlay latency (p95) | **~7 ms** | `test_agents.py` |
 | Contradictions caught on the test set / false alarms | **9/9 / 0** | `test_agents.py` check 21 |
 | Model calls per viewer on the live app: preset (cached) vs custom profile | **0** (59–76 cache hits) vs 16 | RUNBOOK §7, `test_app.py` checks 11–13 |
+| Live load test: viewers served, 0 → 3 replicas, dropped, instant latency under load | **15 of 15**, 0 dropped, 10 ms p95 | [docs/scale_test.md](docs/scale_test.md) |
 
 | Foundry Tracing | Fallback-rate alert fired | Release gate |
 |---|---|---|
@@ -199,9 +201,11 @@ Every command, deploy step and test result: [RUNBOOK.md](RUNBOOK.md)
 | `app.py`, `static/` | Web app: one replay per viewer, overlays, presets |
 | `prebake_cache.py`, `data/cache/answers.json` | Verified answers for the presets (0 model calls for judges) |
 | `eval_groundedness.py` | Foundry Groundedness evaluator over every saved answer |
+| `load_test.py` | Live load test: viewers ramp 5 → 20, replicas, waiting, latency |
 | `eval_single_agent.py` | Single agent vs multi-agent on the real model (quality, latency, tokens as viewers grow) |
 | `test_*.py`, `logs/` | Test suites and their saved results |
 | `Dockerfile`, `.github/workflows/` | Container image and release gate |
+| `infra/` | Bicep template and parameters for the Azure resources |
 | `docs/` | Agents, metrics, schemas, findings, model card, enterprise readiness |
 
 ---
@@ -214,6 +218,6 @@ Every command, deploy step and test result: [RUNBOOK.md](RUNBOOK.md)
 ## Limits and future work
 - **Synthetic data only** (hackathon rule). The adapter pattern (`metrica_adapter.py`) is the path to a partner's real event feed.
 - **Auto-eventing:** a vision model over the video feed to produce pass and speed metrics automatically (not built).
-- **Scale:** one replica and up to 5 viewers at once is a budget setting; the answer cache would move to Redis for more replicas.
+- **Scale:** autoscale 0→3 replicas, measured at 15 viewers at once ([docs/scale_test.md](docs/scale_test.md)), is a budget setting; a new replica takes 20–40 s to start. Each replica keeps its own cache of custom-viewer answers; Redis would share it.
 - **One region** (East US 2); a partner deployment would use their own region and Foundry project.
 - **Groundedness evaluator** runs offline today; next, sample live answers each match.

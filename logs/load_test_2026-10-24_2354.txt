@@ -1,0 +1,45 @@
+log: logs\load_test_2026-10-24_2354.txt
+url wss://inside-the-game.delightfulsand-21c23dc9.eastus2.azurecontainerapps.io/ws · steps [5, 10, 15, 20] · 90s each · speed 20.0
+replicas before start: 0
+  t=   6s  viewers  5  watching  0  waiting  5  replicas 1
+  t=  25s  viewers  5  watching  0  waiting  5  replicas 2
+  t=  44s  viewers  5  watching  5  waiting  0  replicas 2
+  t=  62s  viewers  5  watching  5  waiting  0  replicas 2
+  t=  81s  viewers  5  watching  5  waiting  0  replicas 2
+  t= 100s  viewers 10  watching  8  waiting  2  replicas 2
+  t= 118s  viewers 10  watching 10  waiting  0  replicas 3
+  t= 137s  viewers 10  watching 10  waiting  0  replicas 3
+  t= 156s  viewers 10  watching 10  waiting  0  replicas 3
+  t= 174s  viewers 10  watching 10  waiting  0  replicas 3
+  t= 193s  viewers 15  watching 12  waiting  3  replicas 3
+  t= 211s  viewers 15  watching 15  waiting  0  replicas 3
+  t= 229s  viewers 15  watching 15  waiting  0  replicas 3
+  t= 248s  viewers 15  watching 15  waiting  0  replicas 3
+  t= 266s  viewers 15  watching 15  waiting  0  replicas 3
+  t= 284s  viewers 20  watching 15  waiting  5  replicas 3
+  t= 303s  viewers 20  watching 15  waiting  5  replicas 3
+  t= 321s  viewers 20  watching 15  waiting  5  replicas 3
+  t= 340s  viewers 20  watching 15  waiting  5  replicas 3
+  t= 358s  viewers 20  watching 15  waiting  5  replicas 3
+
+== Per step (at the end of each step) ==
+| Viewers | Watching | Still waiting | Replicas |
+|---|---|---|---|
+| 5 | 5 | 0 | 2 |
+| 10 | 10 | 0 | 3 |
+| 15 | 15 | 0 | 3 |
+| 20 | 15 | 5 | 3 |
+
+== Summary ==
+| Measure | Value |
+|---|---|
+| Viewers who got in | 15 of 20 |
+| Viewers who had to retry ("busy") | 10 (75 retries) |
+| Time to get in: median / p95 / max | 15.7 s / 35.1 s / 35.1 s |
+| First overlay after play (first moment at 2:26 match time) | 7.8 s median |
+| Instant overlay latency p95 (server, per viewer): median / worst | 10.1 ms / 16.0 ms |
+| Dropped while watching | 0 |
+| Gave up (never got in) | 0 |
+| Overlays received | 606 |
+| Model calls (all viewers) / cache hits | 0 / 510 |
+| Max replicas seen | 3 |
