@@ -1,0 +1,62 @@
+log: logs\test_agents_mock_match_002_2026-10-24_2126.txt
+match match_002: {'HBC': 1, 'EVW': 4}, club EVW, player focus EVW38
+
+== Full match (mock) ==
+{"llm_calls": {"explainer": 29, "narrator": 31, "personalizer": 31}, "cache_hits": 0, "blocked_drafts": 0, "fallbacks": {}, "rejected_names": {}, "llm_latency_p95_s": 0.0, "instant_latency_p95_ms": 5.92, "overlays": 186, "rejected_events": 0, "workflow_errors": 0}
+
+== Checks: pipeline ==
+  [PASS] 1. every alert became a moment the analyst sees  36/36
+  [PASS] 2. every important moment got an explanation (v2)  29/29
+  [PASS] 3. explanations come from the LLM agents (no fallbacks)  llm 100%, fallbacks {}
+  [PASS] 4. instant overlays p95 < 50 ms  5.92 ms
+  [PASS] 5. half-time and full-time recaps for every viewer  {'half_time': 3, 'full_time': 3}
+  [PASS] 6. every overlay matches the schema  186 overlays, 0 bad
+  [PASS] 7. LLM cost bounded (< 150 calls per match)  91 calls
+
+== Checks: personalization ==
+  [PASS] 8. fan sees fewer, bigger moments than analyst  fan 15 vs analyst 36, low-importance shown 0
+  [PASS] 9. Spanish viewer gets Spanish (v2) overlays  15 overlays
+  [PASS] 10. favourite-club highlight correct  10 highlighted
+  [PASS] 11. player focus (EVW38): all their moments + tracker every 5 min  7/7 moments, 20 trackers
+  [PASS] 12. single-metric ticker for metric viewers  {'fan_es_club': 20, 'focus_player': 20}
+
+== Checks: ingest ==
+  [PASS] 13. ingest agent rejects a replayed (duplicate) event  rejected 1
+
+== Checks: failure recovery (first half, mock failure modes) ==
+  [PASS] 14. model 'fail' -> template fallback, nothing lost  v2 18/18, reasons ['error'], leaked 0
+  [PASS] 15. model 'bad_json' -> template fallback, nothing lost  v2 18/18, reasons ['bad_json'], leaked 0
+  [PASS] 16. model 'hallucinate' -> template fallback, nothing lost  v2 18/18, reasons ['ungrounded'], leaked 0
+  [PASS] 17. model 'wrong_name' -> template fallback, nothing lost  v2 18/18, reasons ['unknown_name'], leaked 0
+  [PASS] 18. model 'off_topic' -> template fallback, nothing lost  v2 18/18, reasons ['out_of_scope'], leaked 0
+  [PASS] 19. model 'contradict' -> template fallback, nothing lost  v2 18/18, reasons ['contradiction'], leaked 0
+  [PASS] 20. model 'slow' -> template fallback, nothing lost  v2 18/18, reasons ['timeout'], leaked 0
+
+== Checks: contradiction rules ==
+  [PASS] 21. contradictions caught, true claims pass  caught 9/9, false alarms 0 []
+
+== Checks: name rules ==
+  [PASS] 22. invented names caught, known names and possessives pass  caught 2/2, false alarms 0 []
+  [PASS] 23. lower-cased names get their capitals back (other words untouched)  {'title': "Riverside dominate with Arribas' four goals", 'summary': 'Northgate fought back. Big chances and momentum stay lower case.'}
+  [PASS] 24. Arabic / Hindi answers must keep names in Latin letters  must keep ['Arribas', 'Riverside'], transliterated caught ['Arribas', 'Riverside'], Latin kept ok True
+
+== Checks: option combinations ==
+  viewer                 moments  v2  lang  club  metric  player  recaps
+  c1_analyst_fr_home          36  29    ok    ok    ok    ok    ok
+  c2_fan_pt_striker           13  12    ok    ok    ok    ok    ok
+  c3_fan_ar_away              15  15    ok    ok    ok    ok    ok
+  c4_analyst_es_mid           11  11    ok    ok    ok    ok    ok
+  c5_fan_hi                   15  15    ok    ok    ok    ok    ok
+  c6_analyst_en_away          13  12    ok    ok    ok    ok    ok
+  c7_broadcaster_en           30  29    ok    ok    ok    ok    ok
+  [PASS] 25. every option value works (7 combination viewers: modes, languages, clubs, players, metrics)  123 LLM calls
+  [PASS] 26. broadcaster view: between fan and analyst, on-air rewrites  fan 15 < broadcaster 30 < analyst 36, low 0, rewritten 29
+
+  Sample captions (read for language quality):
+  [fr] 00:43 [fr] Booking for Wainwright | [fr] 00:43 - Booking for Wainwright! Wainwright goes into the book.
+  [pt] 01:32 [pt] Balogun scores for Harbourside | [pt] 01:32 - Balogun scores for Harbourside! Harbourside lead 1-0.
+  [ar] 01:32 [ar] Balogun scores for Harbourside | [ar] 01:32 - Balogun scores for Harbourside! Harbourside lead 1-0.
+  [es] 01:32 [es] Balogun scores for Harbourside | [es] 01:32 - Balogun scores for Harbourside! Harbourside lead 1-0.
+  [hi] 01:32 [hi] Balogun scores for Harbourside | [hi] 01:32 - Balogun scores for Harbourside! Harbourside lead 1-0.
+
+26/26 checks passed -> PASS

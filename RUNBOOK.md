@@ -128,8 +128,9 @@ python test_agents.py --foundry --log         # real Foundry model (needs .env +
 13. Ingest agent rejects a duplicate event
 14–20. Model fails / returns bad JSON / invents numbers / invents names / makes out-of-scope claims /
 contradicts the data / is too slow → template fallback, nothing lost, no invented text on screen
-21. Contradiction rules: 7 wrong sentences caught, 8 true sentences pass (no false alarms) - incl. aims such as
-    "push to equalise" / "to draw level", which are not claims that the score is level (13i)
+21. Contradiction rules: 9 wrong sentences caught, 12 true sentences pass (no false alarms). Level score judged by grammar
+    (13i): an intent word just before ("push to equalise", "chasing an equaliser", "nearly equalised", "will they equalise")
+    or a modal just after ("an equaliser would...") makes it an aim; "came back to equalise" stays a claim
 22. Name rules: invented names caught, known names and possessives ("Riverside's") pass
 23. Lower-cased names get their capitals back (a real model once wrote a whole recap in lower case)
 24. Arabic / Hindi answers must keep names in Latin letters (a real model transliterated them, and translated "Northgate")
@@ -166,6 +167,47 @@ Check 3 with Foundry: ≥ 90% from the LLM (mock: 100%). Rejected answers are pr
 **Last result (21 Oct, Foundry):**
 - match_001: **15/15 PASS** - 100% LLM, 0 fallbacks, 71 calls, p95 3.1 s; 3 answers rejected then fixed by feedback · log: `logs/test_agents_foundry_match_001_2026-10-21_0015.txt`
 - match_002: **15/15 PASS** - 100% LLM, 0 fallbacks, 100 calls, p95 4.6 s; 2 answers rejected then fixed · log: `logs/test_agents_foundry_match_002_2026-10-21_0013.txt`
+
+### Tracing + model swap (24 Oct) - details: [docs/model_comparison.md](docs/model_comparison.md)
+1. `pip install -r requirements.txt` (adds `azure-monitor-opentelemetry`).
+2. Tracing: `$env:TRACING="1"` (+ `$env:TRACING_CONTENT="1"` to record prompts/answers), then any Foundry run.
+   Traces go to App Insights `inside-the-game-resource-jayak-appinsights` (rg `rg-jayakarayil123-3358`) → Foundry portal → **Tracing**.
+3. Model swap: `python test_agents.py --foundry --model gpt-5-mini --log` (no code change).
+   Second deployment: `az cognitiveservices account deployment create -n inside-the-game-resource-jayak -g rg-jayakarayil123-3358 --deployment-name gpt-5-mini --model-name gpt-5-mini --model-version 2025-08-07 --model-format OpenAI --sku-name GlobalStandard --sku-capacity 100`
+   (`gpt-4.1-nano`: 0 quota on the free trial; `gpt-4o-mini`: retired.)
+
+| Model | Checks | LLM | Fallbacks | Calls | p95 | Log |
+|---|---|---|---|---|---|---|
+| gpt-4.1-mini | **19/19 PASS** | 100% | 0 | 70 | 3.6 s | `logs/test_agents_foundry_gpt-4.1-mini_match_001_2026-10-24_2008.txt` |
+| gpt-5-mini | 16/19 (expected) | 0% | 47 (44 timeouts) | 121 | 7.5 s | `logs/test_agents_foundry_gpt-5-mini_match_001_2026-10-24_2013.txt` |
+
+Screenshots (take in the Foundry portal): `docs/img/foundry_tracing.png`, `docs/img/foundry_trace_detail.png`, `docs/img/foundry_models.png`.
+
+### Fallback-rate alert (24 Oct)
+1. Code: every model answer logs `llm_answer` / `llm_fallback` (`agents/common.py`) → App Insights `traces` when `TRACING=1`.
+2. Action group (email): `az monitor action-group create -g rg-jayakarayil123-3358 -n itg-alerts --short-name itgalerts --action email owner <email>`
+3. Alert rule (Git Bash: `export MSYS_NO_PATHCONV=1` first; `az config set extension.use_dynamic_install=yes_without_prompt` once):
+   `az monitor scheduled-query create -g rg-jayakarayil123-3358 -n itg-llm-fallback-rate --scopes <appinsights-id> --condition "max fallback_pct from 'FB' > 10" --condition-query FB="<KQL in docs/model_comparison.md §3>" --window-size 15m --evaluation-frequency 15m --severity 2 --action-groups <action-group-id> --auto-mitigate true`
+4. Test: `$env:TRACING="1"; python test_agents.py --foundry --model gpt-5-mini --log` → 86.1% fallbacks → alert fires within ~15 min.
+   Log: `logs/test_agents_foundry_gpt-5-mini_match_001_2026-10-24_2039.txt`
+5. Production (image v10 = tracing + fallback logs), run yourself:
+   `az containerapp update -n inside-the-game -g rg-jayakarayil123-3358 --image ghcr.io/pitchtopixel/inside-the-game:v10 --set-env-vars TRACING=1`
+
+**Last result (24 Oct):** alert fired 20:55 IST (86.1% fallbacks, gpt-5-mini test) · live v10 (revision 0000009): HTTP 200 (0.8 s),
+startup log "answer cache: 329 checked answers preloaded" + "tracing: on (Foundry portal > Tracing)"
+
+### Groundedness report (13g) — `eval_groundedness.py`
+Every saved answer judged by the Foundry **Groundedness evaluator** (azure-ai-evaluation, gpt-4.1-mini as judge) against what its
+agent was given; personalizer rewrites against the overlay they rewrote (so translations are checked for meaning). Offline only.
+```powershell
+pip install -r requirements-eval.txt          # evaluation SDK - not in the app / container
+python eval_groundedness.py --limit 5         # quick try
+python eval_groundedness.py --log             # all answers -> docs/groundedness_report.md (~330 judge calls)
+```
+**Last result (24 Oct):** 321/329 grounded (98%), average 4.82/5, 0 judge errors · 8 below 4: score direction wrong
+("Eastvale trailing 2-1" while leading 1-2 - the trail rule only knew "Eastvale trail / are trailing"), a Hindi rewrite gave
+Bittencourt's goal to the wrong club · report: [docs/groundedness_report.md](docs/groundedness_report.md) · log:
+`logs/eval_groundedness_2026-10-24_2130.txt`
 
 ## 5. App (UI) — `app.py` + `static/`
 ```powershell

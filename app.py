@@ -35,7 +35,7 @@ from fastapi.staticfiles import StaticFiles
 
 from agents.common import load_answer_cache
 from agents.personalizer import LANGUAGES, PLAYER_METRICS, TEAM_METRICS
-from llm import get_chat_client
+from llm import enable_tracing, get_chat_client
 from orchestrator import Orchestrator
 from stream_server import validate
 
@@ -291,6 +291,8 @@ def main():
     if os.getenv("LLM_PROVIDER", "mock") == "foundry":
         n = load_answer_cache(client, ANSWER_CACHE_PATH, os.getenv("FOUNDRY_MODEL"))
         print(f"answer cache: {n} checked answers preloaded from {ANSWER_CACHE_PATH}")
+        if asyncio.run(enable_tracing(client)):
+            print("tracing: on (Foundry portal > Tracing)")
     app = create_app(lambda: Session(args.match, args.speed, client), args.autoplay, args.max_sessions)
     uvicorn.run(app, host=args.host, port=args.port, log_level="warning")
 

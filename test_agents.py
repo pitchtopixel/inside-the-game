@@ -3,6 +3,7 @@ Test the multi-agent pipeline end to end (mock model by default - no Azure cost)
 
     python test_agents.py                 full match, 3 viewer profiles, + failure-mode runs, + 6 option combinations
     python test_agents.py --foundry       same checks against the real Foundry model (costs a few cents)
+    add --model <deployment> to swap the Foundry model (no code change), TRACING=1 to send traces to Foundry
     add --match match_002 for another match, --log to save output to logs/, --show to print sample overlays
 """
 
@@ -13,7 +14,7 @@ import os
 import sys
 from collections import Counter
 
-from llm import MockChatClient, get_chat_client
+from llm import MockChatClient, enable_tracing, get_chat_client
 from orchestrator import Orchestrator
 from testlog import start_log
 
@@ -169,12 +170,16 @@ def contradiction_rules():
     wrong = [("Northgate lead the game.", facts), ("Riverside trail after the break.", facts),
              ("A thumping header from Arribas!", facts), ("Northgate are on top now.", facts),
              ("It finishes all square.", facts), ("Northgate equalise!", facts),
+             ("Northgate came back to equalise.", facts), ("Okafor scored the equaliser.", facts),
              ("Brilliant save by the keeper.", saved)]
-    # aims are not claims (13i: a real model's "Northgate push to equalise" was a false alarm)
+    # aims are not claims (13i: a real model's "Northgate push to equalise" was a false alarm) - judged by
+    # grammar (intent word before, modal after), not by a fixed phrase list
     right = [("Riverside lead 1-0.", facts), ("Northgate trail and need a response.", facts),
              ("Arribas fires it in with his right foot.", facts), ("Riverside are on top.", facts),
              ("The shot goes wide.", saved), ("Northgate push to equalise.", facts),
-             ("Northgate are chasing an equalizer.", facts), ("Northgate need a goal to draw level.", facts)]
+             ("Northgate are chasing an equalizer.", facts), ("Northgate need a goal to get back on level terms.", facts),
+             ("Northgate nearly equalised, but the keeper held on.", facts), ("Will Northgate equalise?", facts),
+             ("An equaliser would change everything.", facts), ("Northgate are hoping to level at the break.", facts)]
     missed = [s for s, f in wrong if not contradictions({"t": s}, f)]
     false_alarms = [s for s, f in right if contradictions({"t": s}, f)]
     check("21. contradictions caught, true claims pass", not missed and not false_alarms,
@@ -285,6 +290,8 @@ async def amain(args):
     setup_profiles(data)
     print(f"match {args.match}: {data['match']['final_score']}, club {CLUB}, player focus {FOCUS}")
     client = get_chat_client("foundry") if args.foundry else MockChatClient()
+    if args.foundry:
+        print(f"model {os.getenv('FOUNDRY_MODEL')}, tracing {'on' if await enable_tracing(client) else 'off'}")
     await main_run(data, client, args.show)
     if not args.foundry:
         await failure_runs(data)
@@ -299,11 +306,15 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--match", default="match_001")
     ap.add_argument("--foundry", action="store_true", help="use the real Foundry model")
+    ap.add_argument("--model", help="Foundry deployment to use for this run (overrides FOUNDRY_MODEL)")
     ap.add_argument("--show", action="store_true", help="print sample overlays")
     ap.add_argument("--log", action="store_true", help="also save output to logs/")
     args = ap.parse_args()
+    if args.model:
+        os.environ["FOUNDRY_MODEL"] = args.model
     if args.log:
-        start_log(f"test_agents_{'foundry' if args.foundry else 'mock'}_{args.match}")
+        tag = f"foundry_{os.getenv('FOUNDRY_MODEL')}" if args.foundry else "mock"
+        start_log(f"test_agents_{tag}_{args.match}")
     raise SystemExit(0 if asyncio.run(amain(args)) else 1)
 
 

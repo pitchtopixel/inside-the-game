@@ -32,6 +32,16 @@ def get_chat_client(provider=None, **mock_kwargs):
     return MockChatClient(**mock_kwargs)
 
 
+async def enable_tracing(client):
+    """TRACING=1 with Foundry: send agent/workflow traces to the project's Application Insights (Foundry > Tracing).
+    The connection string comes from the Foundry project itself (no new secret). TRACING_CONTENT=1 also logs prompts."""
+    if os.getenv("TRACING") != "1" or isinstance(client, MockChatClient):
+        return False
+    setup = get_chat_client("foundry")  # own client: app.py sets up tracing outside the server's event loop
+    await setup.configure_azure_monitor(enable_sensitive_data=os.getenv("TRACING_CONTENT") == "1")
+    return True
+
+
 class MockChatClient(BaseChatClient):
     """Offline stand-in for a Foundry model. Reads the JSON task in the last user message."""
 

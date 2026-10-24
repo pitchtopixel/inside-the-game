@@ -1,0 +1,3 @@
+# Offline groundedness report only (eval_groundedness.py) - not needed by the app or the container
+-r requirements.txt
+azure-ai-evaluation==1.18.10

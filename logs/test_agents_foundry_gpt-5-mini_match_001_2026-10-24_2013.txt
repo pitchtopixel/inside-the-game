@@ -1,0 +1,58 @@
+log: logs\test_agents_foundry_gpt-5-mini_match_001_2026-10-24_2013.txt
+match match_001: {'RIV': 4, 'NGR': 1}, club NGR, player focus RIV27
+model gpt-5-mini, tracing on
+
+== Full match (foundry) ==
+{"llm_calls": {"explainer": 42, "narrator": 31, "personalizer": 48}, "cache_hits": 0, "blocked_drafts": 1, "fallbacks": {"explainer:timeout": 21, "narrator:contradiction": 1, "personalizer:timeout": 23, "narrator:timeout": 2}, "rejected_names": {}, "llm_latency_p95_s": 7.524, "instant_latency_p95_ms": 6.22, "overlays": 160, "rejected_events": 0, "workflow_errors": 0}
+
+== Rejected answers (1; retried with feedback, template shown if still rejected) ==
+  narrator [contradiction] Your previous answer was rejected - claims that contradict the data: ['Riverside are not on top']. Rewrite it using only the facts.
+    text: line | 03:32 Riverside 1-0 Northgate, chaos: 4.67 turnovers a minute, Riverside dominating possession and chances.
+
+== Checks: pipeline ==
+  [PASS] 1. every alert became a moment the analyst sees  32/32
+  [PASS] 2. every important moment got an explanation (v2)  21/21
+  [FAIL] 3. explanations come from the LLM agents (>= 90%, rest safe template fallbacks)  llm 0%, fallbacks {'explainer:timeout': 21, 'narrator:contradiction': 1, 'personalizer:timeout': 23, 'narrator:timeout': 2}
+  [PASS] 4. instant overlays p95 < 50 ms  6.22 ms
+  [PASS] 5. half-time and full-time recaps for every viewer  {'half_time': 3, 'full_time': 3}
+  [PASS] 6. every overlay matches the schema  160 overlays, 0 bad
+  [PASS] 7. LLM cost bounded (< 150 calls per match)  121 calls
+
+== Checks: personalization ==
+  [PASS] 8. fan sees fewer, bigger moments than analyst  fan 13 vs analyst 32, low-importance shown 0
+  [FAIL] 9. Spanish viewer gets Spanish (v2) overlays  13 overlays
+  [PASS] 10. favourite-club highlight correct  4 highlighted
+  [PASS] 11. player focus (RIV27): all their moments + tracker every 5 min  7/7 moments, 20 trackers
+  [PASS] 12. single-metric ticker for metric viewers  {'fan_es_club': 20, 'focus_player': 20}
+
+== Checks: ingest ==
+  [PASS] 13. ingest agent rejects a replayed (duplicate) event  rejected 1
+
+== Checks: contradiction rules ==
+  [PASS] 21. contradictions caught, true claims pass  caught 7/7, false alarms 0 []
+
+== Checks: name rules ==
+  [PASS] 22. invented names caught, known names and possessives pass  caught 2/2, false alarms 0 []
+  [PASS] 23. lower-cased names get their capitals back (other words untouched)  {'title': "Riverside dominate with Arribas' four goals", 'summary': 'Northgate fought back. Big chances and momentum stay lower case.'}
+  [PASS] 24. Arabic / Hindi answers must keep names in Latin letters  must keep ['Arribas', 'Riverside'], transliterated caught ['Arribas', 'Riverside'], Latin kept ok True
+
+== Checks: option combinations ==
+  viewer                 moments  v2  lang  club  metric  player  recaps
+  c1_analyst_fr_home          32  21    ok    ok    ok    ok    ok
+  c2_fan_pt_striker            7   6    ok    ok    ok    ok    ok
+  c3_fan_ar_away              13  13    ok    ok    ok    ok    ok
+  c4_analyst_es_mid            7   6    ok    ok    ok    ok    ok
+  c5_fan_hi                   13  13    ok    ok    ok    ok    ok
+  c6_analyst_en_away          10   6    ok    ok    ok    ok    ok
+  c7_broadcaster_en           25  21    ok    ok    ok    ok    ok
+  [PASS] 25. every option value works (7 combination viewers: modes, languages, clubs, players, metrics)  230 LLM calls
+  [FAIL] 26. broadcaster view: between fan and analyst, on-air rewrites  fan 13 < broadcaster 25 < analyst 32, low 0, rewritten 0
+
+  Sample captions (read for language quality):
+  [fr] 02:26 Arribas scores for Riverside | 02:26 Goal! Arribas gives Riverside a 1-0 lead with a left-foot finish at 77.9 km/h.
+  [pt] 02:26 Arribas scores for Riverside | 02:26 Goal! Arribas gives Riverside a 1-0 lead with a left-foot finish at 77.9 km/h.
+  [ar] 02:26 Arribas scores for Riverside | 02:26 Goal! Arribas gives Riverside a 1-0 lead with a left-foot finish at 77.9 km/h.
+  [es] 02:26 Arribas scores for Riverside | 02:26 Goal! Arribas gives Riverside a 1-0 lead with a left-foot finish at 77.9 km/h.
+  [hi] 02:26 Arribas scores for Riverside | 02:26 Goal! Arribas gives Riverside a 1-0 lead with a left-foot finish at 77.9 km/h.
+
+16/19 checks passed -> FAIL

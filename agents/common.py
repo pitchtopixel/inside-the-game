@@ -3,11 +3,17 @@
 import asyncio
 import hashlib
 import json
+import logging
 import os
 import re
 import time
 import weakref
 from collections import defaultdict
+
+# One log record per model answer (llm / fallback); with TRACING=1 they reach App Insights for the fallback-rate alert
+log = logging.getLogger("itg.llm")
+log.setLevel(logging.INFO)
+log.addHandler(logging.NullHandler())  # nothing printed locally
 
 TEAM_FACT_KEYS = ("possession_pct", "shots", "shots_on_target", "xg", "pass_accuracy_pct", "final_third_passes",
                   "pressures", "turnovers", "fouls", "corners")
@@ -181,10 +187,26 @@ FOOT = re.compile(r"\b(left|right)[- ]?foot(ed)?\b|\bvolley\w*\b", re.I)
 SAVE = re.compile(r"\b(saves?|saved|parried|stopped by the (keeper|goalkeeper))\b", re.I)
 MISS = re.compile(r"\b(wide|off target|over the bar|hits? the (post|bar)|blocked)\b", re.I)
 LEVEL = re.compile(r"\b(all square|level at|on level terms|equalis\w*|equaliz\w*)\b", re.I)
-# An aim, not a claim: "push to equalise", "chasing an equaliser", "to draw level"
-LEVEL_AIM = re.compile(r"\b(to (equali[sz]e|draw level|get level|level (it|the score))|"
-                       r"(for|chasing|seeking|hunting|looking for|search for) (an|the) equali[sz]er)\b", re.I)
+# Aim vs claim, by grammar rather than fixed phrases: a level-score word is an aim when an intent / possibility
+# word comes just before it ("push to equalise", "chasing an equaliser", "could level it", "nearly equalised")
+# or a modal just after it ("an equaliser would change everything"); "came back to equalise" stays a claim.
+AIM_BEFORE = {"to", "for", "need", "needs", "needing", "push", "pushes", "pushing", "chase", "chases", "chasing",
+              "seek", "seeks", "seeking", "hunt", "hunts", "hunting", "search", "searching", "look", "looks", "looking",
+              "hope", "hopes", "hoping", "try", "tries", "trying", "bid", "aim", "aims", "aiming", "want", "wants",
+              "could", "would", "might", "may", "will", "can", "nearly", "almost", "chance", "fail", "fails", "failed"}
+AIM_AFTER = {"would", "could", "might", "will", "can"}
+DONE_TO = re.compile(r"\b(came|come|comes|fought|fight|fights|hit|hits|bounced|bounce|bounces) back to$|"
+                     r"\b(rallied|rally|rallies|recovered|recover|recovers|rose|rise|rises|went on|go on|goes on) to$")
 MOMENTUM_TYPES = ("momentum", "rhythm", "pressure_spell", "possession_streak")
+
+
+def _level_claim(text, m):
+    """True if this level-score word states the score IS level (a claim), False if it is only an aim."""
+    before = re.split(r"[.!?;:]", text[:m.start()])[-1].lower().strip()
+    after = re.split(r"[.!?;:]", text[m.end():])[0].lower().split()
+    if DONE_TO.search(before):
+        return True
+    return not (set(before.replace(",", " ").split()[-3:]) & AIM_BEFORE or set(after[:2]) & AIM_AFTER)
 
 
 def contradictions(output, facts):
@@ -212,7 +234,7 @@ def contradictions(output, facts):
         is_recap = _find(facts, "key_moments") is not None  # recaps retell earlier phases
         if claims_on_top and on_top != team and not about_this and not is_recap:
             bad.append(f"{team} are not on top")
-    if LEVEL.search(LEVEL_AIM.sub("", text)) and len(set(score.values())) > 1:
+    if len(set(score.values())) > 1 and any(_level_claim(text, m) for m in LEVEL.finditer(text)):
         bad.append("the score is not level")
     body = data.get("body_part")
     if body == "head" and FOOT.search(text):
@@ -422,6 +444,7 @@ async def _call_model(agent, payload, required, facts, metrics, timeout_s, retri
                     for w in unknown_names(answer, facts):
                         metrics.rejected_names[w] += 1
                 continue
+            log.info("llm_answer", extra={"agent": agent.name, "outcome": "llm", "model": os.getenv("FOUNDRY_MODEL")})
             return data, None
         except asyncio.TimeoutError:
             reason = "timeout"
@@ -430,4 +453,6 @@ async def _call_model(agent, payload, required, facts, metrics, timeout_s, retri
         except Exception:
             reason = "error"
     metrics.fallbacks[f"{agent.name}:{reason}"] += 1
+    log.warning("llm_fallback", extra={"agent": agent.name, "outcome": "fallback", "reason": reason,
+                                       "model": os.getenv("FOUNDRY_MODEL")})
     return None, reason
