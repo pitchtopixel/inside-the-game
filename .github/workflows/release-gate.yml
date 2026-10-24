@@ -1,0 +1,44 @@
+# Release gate: every push / PR runs the full offline test suite (mock model, no Azure, no cost).
+# The container image is built only if all tests pass. Deploying stays a manual, reviewed step (RUNBOOK §7).
+name: release-gate
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  tests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      LLM_PROVIDER: mock
+      PYTHONUTF8: "1"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+          cache: pip
+      - run: pip install -r requirements.txt
+      - name: Stats engine
+        run: python test_stats.py
+      - name: Live stream (server + ordered, on-time replay)
+        run: |
+          python stream_server.py &
+          for i in $(seq 1 30); do curl -s -o /dev/null http://127.0.0.1:8500/ && break; sleep 1; done
+          python test_stream.py --check
+      - name: Agents (grounding, fallbacks, personalization, every option)
+        run: python test_agents.py
+      - name: App (sessions, cache, idle timeout)
+        run: python test_app.py
+
+  image:
+    needs: tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build image (tests passed)
+        run: docker build -t inside-the-game:${{ github.sha }} .

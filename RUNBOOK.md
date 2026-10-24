@@ -316,3 +316,14 @@ via managed identity, 1 draft blocked & rewritten, 0 fallbacks
 
 **Last result (24 Oct, image v9 - Broadcaster mode + preset; 13i level-score fix):** Broadcaster · English + Player focus:
 **0 model calls**, 76 cache hits, 23 broadcaster AI captions
+
+## 8. Release gate (GitHub Actions)
+`.github/workflows/release-gate.yml` runs on every push to `main`, every PR, or by hand (Actions → release-gate → Run workflow):
+1. `tests`: `test_stats.py` → `stream_server.py` + `test_stream.py --check` → `test_agents.py` → `test_app.py` (mock model, no Azure).
+2. `image`: `docker build` only if all tests passed. Deploy stays manual (§7).
+
+Same run locally (Git Bash):
+```bash
+python test_stats.py && (python stream_server.py & sleep 3; python test_stream.py --check) && python test_agents.py && python test_app.py
+```
+**Last result (24 Oct, local):** stats 13/13 (1 s), stream PASS 2080/2080 (10 s), agents 26/26 (6 s), app 13/13 (28 s).
