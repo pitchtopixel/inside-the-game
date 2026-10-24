@@ -38,7 +38,7 @@ Only moments with importance ≥ 45 are explained (~21 per match). Hosting: Cont
 | **Know when quality drops** | Every answer logged; alert above 10% fallbacks in 15 min; Foundry tracing | `docs/img/alert_fired.png`, `docs/img/foundry_tracing.png` |
 | **No secrets** | Entra ID: `az login` locally, managed identity + "Foundry User" role in Azure; no `.env` in the image | RUNBOOK §7 |
 | **Content safety** | Foundry default guardrails (`Microsoft.DefaultV2`) on every deployment | `docs/img/foundry_guardrails.png` |
-| **Safe changes** | GitHub Actions release gate: 5 test suites (stats, stream, agents, app) must pass before the image builds | `.github/workflows/release-gate.yml` |
+| **Safe changes** | GitHub Actions release gate: 4 test suites (stats, stream, agents, app) must pass before the image builds | `.github/workflows/release-gate.yml` |
 | **Safe model changes** | A new model is just a deployment name; the same tests decide | [model_comparison.md](model_comparison.md) |
 | **Cost control** | Answer cache, importance threshold, budget alerts, scale to zero | Foundry model monitor |
 | **Explainability** | Every number traceable to the stats engine; "Verified" box shows which checks passed | UI, [model_card.md](model_card.md) |
