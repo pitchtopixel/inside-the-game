@@ -1,0 +1,44 @@
+log: logs\eval_single_agent_match_001_2026-10-24_2242.txt
+match match_001, model gpt-4.1-mini, viewers ['analyst_en', 'fan_es_club', 'focus_player']
+multi-agent done: 21 explained moments, 41 viewer x moment overlays
+
+== Single agent vs multi-agent (same moments, same viewers, same checks) ==
+| Measure | Multi-agent | Single agent | Single agent + retry |
+|---|---|---|---|
+| Viewer x moment overlays compared | 41 | 41 | 41 |
+| Time until the viewer sees the moment (p95) | 4.73 ms (instant overlay) | 3.2 s (waits for the model) | 4.2 s (waits for the model) |
+| Drafts rejected by the checks / model calls | 1 / 69 | 11 / 41 | 13 / 53 |
+| Answers still rejected (wrong text, or blank / template) | 0 (template stays) | 11 | 1 |
+| Model calls | 69 | 41 | 53 |
+| Tokens | 50,089 | 34,388 | 45,425 |
+
+single_agent: still rejected by reason {'unknown_name': 9, 'contradiction': 2}
+  rejected [unknown_name] Your previous answer was rejected - capitalised words that are not names in the facts: ['Rovers'] - use only those names, sentence case. Rew
+    text: headline | ¡Gol de Arribas para Riverside! | text | Arribas adelanta a Riverside muy temprano con un disparo potente. Northgate debe reaccionar rápido para no p
+  rejected [contradiction] Your previous answer was rejected - claims that contradict the data: ['Riverside are not on top']. Rewrite it using only the facts.
+    text: headline | Arribas fires Riverside ahead early | text | Arribas nets a sharp left-foot strike to put Riverside 1-0 up. Riverside dominate possession and pressur
+  rejected [unknown_name] Your previous answer was rejected - capitalised words that are not names in the facts: ['Rovers'] - use only those names, sentence case. Rew
+    text: headline | Riverside domina el partido | text | Riverside controla el juego con el 81% de posesión y 77% del peligro. Northgate Rovers debe reaccionar rápido. |
+  rejected [unknown_name] Your previous answer was rejected - capitalised words that are not names in the facts: ['Adds', 'Pressure'] - use only those names, sentence
+    text: headline | Sosa's Yellow Adds Pressure | text | Sosa's yellow card increases discipline concerns for Northgate. Riverside leads 2-0 with strong control and thre
+
+single_agent_retry: still rejected by reason {'contradiction': 1}
+  rejected [unknown_name] Your previous answer was rejected - capitalised words that are not names in the facts: ['Rovers'] - use only those names, sentence case. Rew
+    text: headline | ¡Arribas abre el marcador para Riverside! | text | Gol temprano de Arribas pone a Riverside 1-0. Northgate Rovers deben reaccionar rápido. | why | El
+  rejected [unknown_name] Your previous answer was rejected - capitalised words that are not names in the facts: ['Early'] - use only those names, sentence case. Rewr
+    text: headline | Arribas Scores Early For Riverside | text | Goal by Arribas puts Riverside 1-0 up. Riverside dominates possession with 71%. | why | This early goal g
+  rejected [contradiction] Your previous answer was rejected - claims that contradict the data: ['Riverside are not on top']. Rewrite it using only the facts.
+    text: headline | Arribas gives Riverside early lead | text | Arribas scores with a precise left-footed strike, putting Riverside 1-0 up at 2:26. Riverside dominates p
+  rejected [contradiction] Your previous answer was rejected - claims that contradict the data: ['Riverside are not on top']. Rewrite it using only the facts.
+    text: headline | Arribas puts Riverside ahead early | text | Arribas scores from his left foot to give Riverside a 1-0 lead. Riverside dominates possession and shots 
+
+== Tokens per moment as distinct viewer profiles grow (measured: shared 1903, personalizer 422/profile, Single agent 839/profile, Single agent + retry 1108/profile) ==
+| Distinct profiles | Multi-agent | Single agent | Single agent + retry |
+|---|---|---|---|
+| 1 | 2,325 | 839 (0.4x) | 1,108 (0.5x) |
+| 3 | 3,168 | 2,516 (0.8x) | 3,324 (1.0x) |
+| 10 | 6,119 | 8,387 (1.4x) | 11,079 (1.8x) |
+| 50 | 22,981 | 41,937 (1.8x) | 55,396 (2.4x) |
+| 200 | 86,212 | 167,746 (1.9x) | 221,585 (2.6x) |
+
+wall time multi-agent match: 33 s · usage: {"explainer": {"calls": 22, "in": 15768, "out": 2329}, "narrator": {"calls": 23, "in": 20476, "out": 1399}, "personalizer": {"calls": 24, "in": 8634, "out": 1483}, "single_agent": {"calls": 41, "in": 30520, "out": 3868}, "single_agent_retry": {"calls": 53, "in": 40410, "out": 5015}}

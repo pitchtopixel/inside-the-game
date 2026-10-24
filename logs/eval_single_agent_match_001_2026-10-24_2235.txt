@@ -1,0 +1,45 @@
+log: logs\eval_single_agent_match_001_2026-10-24_2235.txt
+match match_001, model gpt-4.1-mini, viewers ['analyst_en', 'fan_es_club', 'focus_player']
+multi-agent done: 21 explained moments, 41 viewer x moment overlays
+
+== Single agent vs multi-agent (same moments, same viewers) ==
+| Measure | Multi-agent | Single agent |
+|---|---|---|
+| Viewer x moment overlays compared | 41 | 41 |
+| Time until the viewer sees the moment (p95) | 3.83 ms (instant overlay) | 3.0 s (waits for the model) |
+| First drafts rejected by the checks | 2 of 71 calls | 13 of 41 calls (32%) |
+| Unchecked / wrong text on screen | 0 (rewritten with feedback, else template) | 13 answers would show or leave a blank |
+| Overlays lost | 0 | 13 |
+| Model calls | 71 | 41 |
+| Tokens | 50,970 | 34,449 |
+
+Single-agent rejections by reason: {'contradiction': 4, 'unknown_name': 8, 'ungrounded': 1}
+  focus_player m-a001: contradiction
+  analyst_en m-a002: unknown_name
+  analyst_en m-a010: unknown_name
+  analyst_en m-a009: contradiction
+  analyst_en m-a013: contradiction
+  analyst_en m-a016: unknown_name
+  rejected [contradiction] Your previous answer was rejected - claims that contradict the data: ['Riverside are not on top']. Rewrite it using only the facts.
+    text: headline | Arribas stuns early for Riverside | text | Arribas scores to give Riverside a crucial 1-0 lead. Perfect strike with his left foot sets the tone! | wh
+  rejected [unknown_name] Your previous answer was rejected - capitalised words that are not names in the facts: ['Lead', 'Marks'] - use only those names, sentence ca
+    text: headline | Early Chaos Marks Riverside Lead | text | Riverside controls 80% possession but the high turnover rate disrupts flow. The game is in chaos with nearl
+  rejected [unknown_name] Your previous answer was rejected - capitalised words that are not names in the facts: ['Dominates', 'Threats'] - use only those names, sent
+    text: headline | Riverside Dominates Threats at 22:01 | text | Riverside leads 2-0 with 79% threat share, controlling the game rhythm. Their superior possession and a
+  rejected [contradiction] Your previous answer was rejected - claims that contradict the data: ['Riverside are not on top']. Rewrite it using only the facts.
+    text: headline | Sosa's yellow adds pressure to Northgate | text | At 21 minutes, Sosa's yellow card risks weakening Northgate's defense. Riverside leads 2-0 with str
+  rejected [contradiction] Your previous answer was rejected - claims that contradict the data: ['Northgate do not lead']. Rewrite it using only the facts.
+    text: headline | Brandt's yellow disrupts Northgate's flow | text | Brandt's booking at 27:15 adds pressure on Northgate amid their surge in momentum. Despite trailin
+  rejected [unknown_name] Your previous answer was rejected - capitalised words that are not names in the facts: ['Hat', 'Lead', 'Secures'] - use only those names, se
+    text: headline | Arribas Hat-Trick Secures Riverside Lead | text | Arribas completes a hat-trick with a headed goal to extend Riverside's lead to 3-0 against Northgat
+
+== Tokens per moment as distinct viewer profiles grow (measured: shared 1944, personalizer 422/profile, single 840/profile) ==
+| Distinct profiles | Multi-agent | Single agent | Single / multi |
+|---|---|---|---|
+| 1 | 2,367 | 840 | 0.4x |
+| 3 | 3,212 | 2,521 | 0.8x |
+| 10 | 6,169 | 8,402 | 1.4x |
+| 50 | 23,065 | 42,011 | 1.8x |
+| 200 | 86,428 | 168,044 | 1.9x |
+
+wall time multi-agent match: 36 s · usage: {"explainer": {"calls": 23, "in": 16455, "out": 2482}, "narrator": {"calls": 23, "in": 20474, "out": 1421}, "personalizer": {"calls": 24, "in": 8635, "out": 1503}, "single_agent": {"calls": 41, "in": 30520, "out": 3929}}

@@ -60,3 +60,44 @@ text on screen. The contradiction rules are also tested directly on hand-written
 ## Mock model
 `LLM_PROVIDER=mock` (default) runs the same agents against an offline model that answers from the fact sheet.
 It cannot translate — it marks text as `[es] …`; real translation needs Foundry. Failure modes via `MOCK_MODE`.
+
+## Single agent vs multi-agent (measured)
+`python eval_single_agent.py --log` · 24 Oct 2026 · match_001 · `gpt-4.1-mini` on Microsoft Foundry ·
+log: `logs/eval_single_agent_match_001_2026-10-24_2242.txt` (first run, without the retry column: `..._2235.txt`)
+
+Same match, same 21 explained moments, same 3 viewers (analyst EN, Spanish fan of the away club, player focus) →
+41 viewer × moment overlays. The single agent gets the **same fact sheet** plus the viewer profile and must explain,
+narrate and personalise in one answer. Same model, same grounding checks, same 8 s budget. It runs twice: once with no retry,
+and once with the **same retry-with-feedback** our agents use (so the comparison is not stacked against it).
+
+| Measure | Multi-agent | Single agent | Single agent + retry |
+|---|---|---|---|
+| Time until the viewer sees the moment (p95) | **4.7 ms** (instant overlay, AI version follows) | 3.2 s | 4.2 s |
+| Drafts rejected by the checks / model calls | **1 / 69** | 11 / 41 | 13 / 53 |
+| Answers still rejected (wrong text, or blank) | **0** (rewritten, else template) | 11 | 1 |
+| Model calls / tokens per match (3 profiles) | 69 / 50K | 41 / 34K | 53 / 45K |
+
+**Why the single agent fails more:** one prompt doing four jobs. It wrote Title Case headlines with unknown capitalised words,
+invented a club name ("Rovers"), and claimed "Riverside are on top" against the momentum data.
+A retry with feedback fixes most of these (11 → 1), at the cost of more calls and more waiting. Each specialist agent has
+one job and a short prompt: 1 rejected draft in 69 calls.
+
+**Cost as the audience grows (tokens per moment, measured):**
+the Explainer + Narrator work (~1,900 tokens) is paid **once per moment** and shared by every viewer; each extra
+viewer profile only adds a short Personalizer rewrite (~420 tokens). A single agent pays its full prompt for every profile
+(~840 tokens, ~1,110 with retries).
+
+| Distinct viewer profiles | Multi-agent | Single agent | Single agent + retry |
+|---|---|---|---|
+| 1 | 2,325 | 839 (0.4x) | 1,108 (0.5x) |
+| 3 | 3,168 | 2,516 (0.8x) | 3,324 (1.0x) |
+| 10 | 6,119 | 8,387 (1.4x) | 11,079 (1.8x) |
+| 50 | 22,981 | 41,937 (1.8x) | 55,396 (2.4x) |
+| 200 | 86,212 | 167,746 (1.9x) | 221,585 (2.6x) |
+
+**Honest reading:**
+- A single agent **with retry** gets close on correctness (1 answer still rejected vs 0), but every viewer waits ~4 s for each moment.
+- For 1–2 viewer profiles a single agent uses fewer tokens. A single agent that is as correct (with retry) costs more from
+  **~3 distinct profiles**, and **2.6x** at broadcast scale.
+- Viewers with the same profile cost nothing extra in either design (answer cache). Narrator figures include the two recaps.
+  Results vary slightly between runs (the first run: 32% vs 3% rejected drafts, same conclusions).

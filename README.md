@@ -98,7 +98,29 @@ flowchart LR
 - **Shared state:** `MatchContext` (stats engine, key moments, viewer profiles, model metrics).
 - **Handoffs:** typed messages (`StatsUpdate → MomentBatch → OverlayBatch`, `EnrichRequest → Explained → Narrated`).
 - **Failure recovery:** every AI step has a timeout, a retry *with feedback on why the answer was rejected*, and a template fallback.
-- **What one agent couldn't do:** numbers come from deterministic code, meaning from the Explainer, voice from the Narrator, audience fit from the Personalizer, and each step is checked before the next.
+
+**How the agents collaborate**
+1. **Moments decides who works:** it ranks every alert and sends only moments with importance ≥ 45 to the Explainer, so AI effort goes where it matters (~21 per match).
+2. **Each agent builds on the last:** the Explainer's *why* becomes the Narrator's commentary; the Narrator's line becomes the Personalizer's fan, analyst or broadcaster version in the viewer's language.
+3. **Draft → check → rewrite loop:** every AI draft goes to the grounding check. A rejected draft goes back to the same agent *with the reason*
+   (e.g. "numbers not in the facts: [20.0]", "claims that contradict the data: Riverside are not on top"), and the agent rewrites it.
+   With the real model, 2–3 drafts per match are rejected and fixed this way ([docs/real_model_findings.md](docs/real_model_findings.md)).
+4. **Instant and AI paths work together:** the live workflow puts a template on screen in ~7 ms; the enrichment workflow replaces it with the verified AI version.
+   If an AI agent fails, the instant overlay simply stays.
+5. **Shared answers:** every agent's verified answers are cached per model, so viewers with the same profile reuse them (0 extra model calls).
+
+**What one agent couldn't do:** numbers come from deterministic code, meaning from the Explainer, voice from the Narrator, audience fit from the Personalizer, and each draft is checked before the next agent uses it.
+
+**Why multi-agent: measured** against a single agent with the same facts, moments, viewers and checks (41 overlays, real Foundry model, `eval_single_agent.py`):
+
+| | Multi-agent | Single agent | Single agent + retry |
+|---|---|---|---|
+| Viewer sees the moment after (p95) | **4.7 ms** | 3.2 s | 4.2 s |
+| Answers still wrong after the checks | **0** | 11 | 1 |
+| Tokens per moment, 3 → 50 → 200 viewer profiles | 3.2K → 23K → 86K | 2.5K → 42K → 168K | 3.3K → 55K → 222K |
+
+A single agent can match on correctness only with a retry, and then every viewer waits ~4 s and it costs more from ~3 viewer profiles
+(2.6x at broadcast scale): the shared Explainer + Narrator work is paid once per moment, not once per viewer. Details: [docs/agents.md](docs/agents.md#single-agent-vs-multi-agent-measured)
 
 Details: [docs/agents.md](docs/agents.md) · data formats: [docs/schemas.md](docs/schemas.md)
 
@@ -118,6 +140,7 @@ Details: [docs/agents.md](docs/agents.md) · data formats: [docs/schemas.md](doc
 | Overlays lost when the model was too slow (gpt-5-mini, 44 timeouts) | **0** | [docs/model_comparison.md](docs/model_comparison.md) |
 | Instant overlay latency (p95) | **~7 ms** | `test_agents.py` |
 | Contradictions caught on the test set / false alarms | **9/9 / 0** | `test_agents.py` check 21 |
+| Model calls per viewer on the live app: preset (cached) vs custom profile | **0** (59–76 cache hits) vs 16 | RUNBOOK §7, `test_app.py` checks 11–13 |
 
 | Foundry Tracing | Fallback-rate alert fired | Release gate |
 |---|---|---|
@@ -176,6 +199,7 @@ Every command, deploy step and test result: [RUNBOOK.md](RUNBOOK.md)
 | `app.py`, `static/` | Web app: one replay per viewer, overlays, presets |
 | `prebake_cache.py`, `data/cache/answers.json` | Verified answers for the presets (0 model calls for judges) |
 | `eval_groundedness.py` | Foundry Groundedness evaluator over every saved answer |
+| `eval_single_agent.py` | Single agent vs multi-agent on the real model (quality, latency, tokens as viewers grow) |
 | `test_*.py`, `logs/` | Test suites and their saved results |
 | `Dockerfile`, `.github/workflows/` | Container image and release gate |
 | `docs/` | Agents, metrics, schemas, findings, model card, enterprise readiness |

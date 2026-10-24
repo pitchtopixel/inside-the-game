@@ -328,3 +328,13 @@ python test_stats.py && (python stream_server.py & sleep 3; python test_stream.p
 ```
 **Last result (24 Oct, local):** stats 13/13 (1 s), stream PASS 2080/2080 (10 s), agents 26/26 (6 s), app 13/13 (28 s).
 **GitHub (24 Oct):** release-gate #1 green, commit 7858c32, tests + image in 2m 4s · screenshot `docs/img/release_gate.png`
+
+## 9. Single agent vs multi-agent — `eval_single_agent.py`
+Same match, moments and viewers through the real pipeline and through one single agent (same fact sheet, same checks, no retry / template).
+```powershell
+python eval_single_agent.py --mock --limit 6   # plumbing check, free (the mock cannot answer the single-agent task)
+python eval_single_agent.py --log              # real Foundry model, ~160 calls (~₹5); single agent with and without retry
+```
+**Last result (24 Oct 22:42, gpt-4.1-mini, match_001, 41 overlays)** - multi / single / single + retry:
+viewer sees the moment p95 4.7 ms / 3.2 s / 4.2 s · still wrong 0 / 11 / 1 · calls 69 / 41 / 53 · tokens 50K / 34K / 45K for 3 profiles;
+single + retry costlier from ~3 distinct profiles (2.6x at 200) · log: `logs/eval_single_agent_match_001_2026-10-24_2242.txt` · details: docs/agents.md
