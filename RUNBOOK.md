@@ -370,6 +370,11 @@ later). The web server starts only after that step, so every cold start from 0 r
 (`tracing: off ...`). Tested: simulated hang → gives up on time; real setup → tracing on in 4.4 s; `test_app.py` 13/13.
 **Lesson:** nothing optional may block startup; check the live URL after any cold start.
 
+**Change (27 Oct): always warm.** `minReplicas` 0 → 1 (`infra/main.bicep`), applied live without a full deploy:
+`az containerapp update -n inside-the-game -g $rg --min-replicas 1` → revision `0000012` Running · Healthy, min 1 / max 3,
+HTTP 200 in ~1 s. Cost: one 0.5 vCPU / 1 GiB replica at the idle rate, ~₹30/day (credit ₹19,197, expires ~19 Nov).
+**Undo after judging:** `az containerapp update -n inside-the-game -g $rg --min-replicas 0` and set the bicep default back to 0.
+
 ## 11. Load test — `load_test.py`
 Ramps viewers on the live app (preset profiles → 0 model calls); `busy` viewers retry every 5 s; replicas counted every ~15 s.
 ```powershell

@@ -78,7 +78,7 @@ flowchart LR
 |---|---|
 | **Microsoft Foundry** | Hosts the model (`gpt-4.1-mini`); model swap by deployment name; default content filter (DefaultV2); model monitor (requests, tokens, cost); **Tracing** of every agent and model call; **Groundedness evaluator** (98% of answers grounded) |
 | **Microsoft Agent Framework** | Three workflows (`WorkflowBuilder`) with typed handoffs between 6 agents; built-in Foundry chat client; OpenTelemetry spans |
-| **Azure Container Apps** | Hosts the whole live pipeline and UI; HTTP autoscale 0→3 replicas (4 viewers each), liveness + readiness probes; system-assigned managed identity |
+| **Azure Container Apps** | Hosts the whole live pipeline and UI; HTTP autoscale 1→3 replicas (4 viewers each; one always warm), liveness + readiness probes; system-assigned managed identity |
 | **Bicep (infrastructure as code)** | `infra/main.bicep`: environment, app, identity, Foundry role, action group and alert in one template; `what-if` before every deploy |
 | **Microsoft Entra ID** | No API keys anywhere: `az login` locally, managed identity + "Foundry User" role in Azure |
 | **Application Insights + Azure Monitor** | Agent traces, one log per model answer, alert when more than 10% of answers fall back to templates |
@@ -243,6 +243,6 @@ Every command, deploy step and test result: [RUNBOOK.md](RUNBOOK.md)
 ## Limits and future work
 - **Synthetic data only** (hackathon rule). The adapter pattern (`metrica_adapter.py`) is the path to a partner's real event feed.
 - **Auto-eventing:** a vision model over the video feed to produce pass and speed metrics automatically (not built).
-- **Scale:** autoscale 0→3 replicas, measured at 15 viewers at once ([docs/scale_test.md](docs/scale_test.md)), is a budget setting; a new replica takes 20–40 s to start. Each replica keeps its own cache of custom-viewer answers; Redis would share it.
+- **Scale:** autoscale 1→3 replicas, measured at 15 viewers at once ([docs/scale_test.md](docs/scale_test.md)), is a budget setting. One replica is always warm, so the first viewer gets in at once; each extra replica takes 20–40 s to start. Each replica keeps its own cache of custom-viewer answers; Redis would share it.
 - **One region** (East US 2); a partner deployment would use their own region and Foundry project.
 - **Groundedness evaluator** runs offline today; next, sample live answers each match.
