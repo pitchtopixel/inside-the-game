@@ -45,6 +45,7 @@ MAX_SESSIONS = 5
 IDLE_S = 600                # close a replay after 10 min with no clicks while it is not playing
 ANSWER_CACHE_PATH = os.path.join("data", "cache", "answers.json")  # made by prebake_cache.py
 TIMELINE = {"profile_id": "_timeline", "mode": "analyst", "language": "en"}
+MODES = ("analyst", "fan", "broadcaster")
 EVENT_KEYS = ("event_id", "type", "period", "clock", "elapsed_s", "team", "player_id", "player_name", "x", "y",
               "end_x", "end_y", "outcome")
 EVENT_DETAIL_KEYS = ("subtype", "distance_m", "difficulty", "ball_speed_kmh", "xg", "shot_speed_kmh", "top_speed_kmh",
@@ -58,9 +59,17 @@ def profile_id(p):
     return "p-" + "-".join(str(p.get(k) or "_") for k in ("mode", "language", "club", "player", "metric"))
 
 
-def make_profile(p):
-    """Viewer profile from the browser (or a preset), with defaults and its id."""
-    p = {k: p.get(k) or None for k in ("mode", "language", "club", "player", "metric")}
+def make_profile(p, teams=None):
+    """Viewer profile from the browser (or a preset), with defaults and its id.
+    Only known values are kept (anything else -> default), so free text from the browser never reaches a prompt.
+    Club and player are checked against `teams` (the match rosters) when given."""
+    p = p if isinstance(p, dict) else {}
+    allowed = {"mode": MODES, "language": LANGUAGES, "metric": {**TEAM_METRICS, **PLAYER_METRICS}}
+    if teams:
+        allowed["club"] = {t["team_id"] for t in teams.values()}
+        allowed["player"] = {pl["player_id"] for t in teams.values() for pl in t["players"]}
+    p = {k: p.get(k) if isinstance(p.get(k), str) and (k not in allowed or p[k] in allowed[k]) else None
+         for k in ("mode", "language", "club", "player", "metric")}
     p["mode"], p["language"] = p["mode"] or "analyst", p["language"] or "en"
     p["profile_id"] = profile_id(p)
     return p
@@ -182,7 +191,7 @@ class Session:
         elif c == "set_profiles":
             ids = []
             for p in cmd.get("profiles", [])[:2]:
-                p = make_profile(p)
+                p = make_profile(p, self.meta["teams"])
                 if p["profile_id"] not in self.profiles:
                     self.profiles[p["profile_id"]] = p
                     self.orch.add_profile(p)

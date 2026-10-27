@@ -251,7 +251,7 @@ draft blocked, template shown · live presets 0 model calls · log: `logs/prebak
 python test_app.py --log
 python test_app.py --match match_002 --log
 ```
-**Expect:** `13/13 checks passed -> PASS`
+**Expect:** `14/14 checks passed -> PASS`
 
 **Checks:**
 1. Viewer receives every match event
@@ -267,10 +267,11 @@ python test_app.py --match match_002 --log
 11. Each browser has its own replay (one viewer's seek does not reach another)
 12. A later viewer of the same match reuses cached answers (0 model calls)
 13. A sixth browser at once is told the demo is busy
+14. Made-up profile values (prompt text, unknown club, wrong types) are replaced by defaults
 
-**Last result (24 Oct, mock):**
-- match_001: 13/13 PASS · log: `logs/test_app_match_001_2026-10-24_1934.txt`
-- match_002: 13/13 PASS · log: `logs/test_app_match_002_2026-10-24_1935.txt`
+**Last result (27 Oct, mock):**
+- match_001: 14/14 PASS · log: `logs/test_app_match_001_2026-10-27_1214.txt`
+- match_002: 14/14 PASS · log: `logs/test_app_match_002_2026-10-27_1215.txt`
 - Screenshots (Foundry): `docs/img/ui_start.png` (first screen), `docs/img/ui_story_compare.png` (analyst vs fan, AI story + Verified box)
 
 ## 6. Container (local)

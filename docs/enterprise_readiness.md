@@ -44,6 +44,16 @@ Only moments with importance ≥ 45 are explained (~21 per match). Hosting: Cont
 | **Explainability** | Every number traceable to the stats engine; "Verified" box shows which checks passed | UI, [model_card.md](model_card.md) |
 | **Global** | 6 languages (en, es, fr, pt, hi, ar); names kept in Latin letters in Arabic/Hindi | `test_agents.py` check 24–25 |
 
+### Security: authentication and authorization
+| Who / what | How it is secured | Proof |
+|---|---|---|
+| **Viewers** | Public demo, no login by design; HTTPS only (Container Apps ingress); 5 viewers per replica (`busy` above that), which also caps model cost | `test_app.py` check 13 |
+| **Viewer input** | Profile values are checked against allowlists (mode, language, metric, the match's clubs and players); anything else becomes the default, so browser text never reaches a prompt. Events are validated (duplicates, malformed, out of order rejected) | `test_app.py` check 14, `test_stats.py` checks 9–10 |
+| **App → Foundry** | Entra ID, no API keys: `DefaultAzureCredential` (`az login` locally, managed identity in Azure); least privilege: only the "Foundry User" role on the Foundry account | `infra/main.bicep` |
+| **Secrets** | Registry pull token is read-only (`read:packages`), a Container Apps secret passed at deploy time; no `.env` in the image; no endpoint, token or e-mail in the repo | `infra/main.parameters.json`, RUNBOOK §6 |
+| **AI output** | Foundry content filter (`Microsoft.DefaultV2`) + grounding checks before anything is shown | [model_card.md](model_card.md) |
+| **Startup** | Optional services (tracing) get 15 s, then the app starts without them, so an Azure hiccup cannot keep the site down | RUNBOOK §10 (27 Oct incident) |
+
 ## 5. AI label policy
 1. **Every overlay is labelled** with its source: **✦ AI · grounded** (written by the agents and verified), **● LIVE** (instant template,
    AI version on its way) or **● AUTO** (template fallback: the AI answer did not pass the checks, so it was not shown). The badge tooltip explains each one.
@@ -66,3 +76,4 @@ Only moments with importance ≥ 45 are explained (~21 per match). Hosting: Cont
 2. Partner pilot on real match data.
 3. Staging environment and an approval gate for production deploys.
 4. Accessibility pass (ARIA labels, contrast, keyboard).
+5. Viewer login for partners (Entra ID through Container Apps built-in auth) and per-user rate limits.

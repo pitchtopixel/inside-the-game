@@ -152,7 +152,7 @@ Details: [docs/agents.md](docs/agents.md) · data formats: [docs/schemas.md](doc
 | Ingest (stream) | `test_stream.py --check` | 2,080/2,080 events in order, timing drift 0.04 s |
 | Interpret (stats) | `test_stats.py` | 13/13; realistic numbers on a real Metrica match |
 | Explain + personalise (agents) | `test_agents.py`, `eval_groundedness.py` | 26/26 (mock), 17/17 (real Foundry model); 98% grounded |
-| Render (app, overlays) | `test_app.py` | 13/13 |
+| Render (app, overlays) | `test_app.py` | 14/14 (incl. made-up viewer input rejected) |
 | Release | GitHub Actions release gate | all 4 test suites pass before the image builds |
 | Run (live) | `load_test.py`, fallback-rate alert | 15/15 viewers, 0 dropped; alert fired in a test |
 
