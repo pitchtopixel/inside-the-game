@@ -158,7 +158,7 @@ Details: [docs/agents.md](docs/agents.md) · data formats: [docs/schemas.md](doc
 
 | Foundry Tracing | Fallback-rate alert fired | Release gate |
 |---|---|---|
-| ![Tracing](docs/img/foundry_tracing.png) | ![Alert](docs/img/alert_fired.png) | ![Release gate](docs/img/release_gate.png) |
+| ![Tracing](docs/img/foundry_trace_detail.png) | ![Alert](docs/img/alert_fired.png) | ![Release gate](docs/img/release_gate.png) |
 
 ---
 
