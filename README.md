@@ -144,6 +144,18 @@ Details: [docs/agents.md](docs/agents.md) · data formats: [docs/schemas.md](doc
 | Model calls per viewer on the live app: preset (cached) vs custom profile | **0** (59–76 cache hits) vs 16 | RUNBOOK §7, `test_app.py` checks 11–13 |
 | Live load test: viewers served, 0 → 3 replicas, dropped, instant latency under load | **15 of 15**, 0 dropped, 10 ms p95 | [docs/scale_test.md](docs/scale_test.md) |
 
+**Tested at every stage** (commands and logs: [RUNBOOK.md](RUNBOOK.md)):
+
+| Stage | Test | Last result |
+|---|---|---|
+| Data | `validate_match.py` | 10/10 checks per match; self-test proves each check can fail |
+| Ingest (stream) | `test_stream.py --check` | 2,080/2,080 events in order, timing drift 0.04 s |
+| Interpret (stats) | `test_stats.py` | 13/13; realistic numbers on a real Metrica match |
+| Explain + personalise (agents) | `test_agents.py`, `eval_groundedness.py` | 26/26 (mock), 17/17 (real Foundry model); 98% grounded |
+| Render (app, overlays) | `test_app.py` | 13/13 |
+| Release | GitHub Actions release gate | all 4 test suites pass before the image builds |
+| Run (live) | `load_test.py`, fallback-rate alert | 15/15 viewers, 0 dropped; alert fired in a test |
+
 | Foundry Tracing | Fallback-rate alert fired | Release gate |
 |---|---|---|
 | ![Tracing](docs/img/foundry_tracing.png) | ![Alert](docs/img/alert_fired.png) | ![Release gate](docs/img/release_gate.png) |
