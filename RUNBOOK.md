@@ -328,6 +328,7 @@ Same run locally (Git Bash):
 python test_stats.py && (python stream_server.py & sleep 3; python test_stream.py --check) && python test_agents.py && python test_app.py
 ```
 **Last result (24 Oct, local):** stats 13/13 (1 s), stream PASS 2080/2080 (10 s), agents 26/26 (6 s), app 13/13 (28 s).
+**Last result (27 Oct, local, both matches, after the tracing-timeout and profile-allowlist fixes):** validate 10/10 + self-test 10/10, stats 13/13, stream PASS 2080/2080 (drift 0.03 s), agents 26/26, app 14/14 · logs `logs/*_2026-10-27_122*.txt`.
 **GitHub (24 Oct):** release-gate #1 green, commit 7858c32, tests + image in 2m 4s · screenshot `docs/img/release_gate.png`
 
 ## 9. Single agent vs multi-agent — `eval_single_agent.py`
