@@ -4,7 +4,7 @@
 Built with **Microsoft Foundry**, **Microsoft Agent Framework** and **Azure Container Apps**.
 
 **▶ Live demo:** https://inside-the-game.delightfulsand-21c23dc9.eastus2.azurecontainerapps.io/ (press *Play replay*; first load after idle takes ~20 s)
-**🎬 Video (< 2 min):** _link to be added_
+**🎬 Video (< 2 min):** https://youtu.be/pNtAT0gqTis
 
 ![Start screen](docs/img/ui_start.png)
 
