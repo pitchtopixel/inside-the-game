@@ -215,6 +215,17 @@ Every command, deploy step and test result: [RUNBOOK.md](RUNBOOK.md)
 - The public Metrica Sports sample data was used **for development testing only** (`metrica_adapter.py`); it is not included in this repo.
 - No league or club trademarks are used.
 
+**Demo match (`match_001`, shown in the video):**
+
+| | |
+|---|---|
+| Fixture | Riverside Athletic **4–1** Northgate Rovers · Synthetic Super League 2026/27, matchday 9 |
+| Setting | Riverside Park (38,764 fans), light rain, 105 × 68 m pitch |
+| Squads | 16 players per club (4-3-3 vs 4-2-3-1); 28 players with events |
+| Length | 96 min 31 s across 2 halves (incl. added time) |
+| Events | **2,080**: 994 passes (755 complete), 270 possession changes, 251 pressures, 166 interceptions, 49 tackles, 31 shots, 17 saves, 5 goals, 23 fouls, 4 cards, 6 substitutions |
+| Per event | time, team, player, x/y (and end x/y), outcome; passes add distance, height, difficulty, ball speed, under pressure; shots add xG, shot speed, body part |
+
 ## Limits and future work
 - **Synthetic data only** (hackathon rule). The adapter pattern (`metrica_adapter.py`) is the path to a partner's real event feed.
 - **Auto-eventing:** a vision model over the video feed to produce pass and speed metrics automatically (not built).
