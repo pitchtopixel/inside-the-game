@@ -38,7 +38,7 @@ param alertEmail string
 param foundryRoleAssignmentName string = ''
 
 @description('Scale: replicas and when to add one (each replica serves up to 5 viewers; scale out before it is full)')
-param minReplicas int = 0
+param minReplicas int = 1
 param maxReplicas int = 3
 param concurrentRequestsPerReplica int = 4
 
