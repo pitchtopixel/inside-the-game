@@ -359,6 +359,15 @@ az deployment group create  -g rg-jayakarayil123-3358 -f infra/main.bicep -p inf
 restart did not retry the failed one). Result: `inside-the-game--bicep2` Running · Healthy, HTTP 200, 329 answers, tracing on.
 **Lesson:** test the token before every deploy (curl line above); after 26 Oct make the package public and drop the registry login.
 
+**Incident (27 Oct, found ~11:50 IST):** the live URL did not load. System log: liveness and readiness probes failed, container
+restarted 5 times. Console log stopped after `answer cache: 329 ... preloaded`: startup was stuck in tracing setup (Foundry
+never returned the Application Insights connection string; the same call also hung from the laptop, and answered in 5 s an hour
+later). The web server starts only after that step, so every cold start from 0 replicas failed. Fixed live:
+`az containerapp update -n inside-the-game -g $rg --set-env-vars TRACING=0` → revision `0000011` Running · Healthy, HTTP 200 in ~1 s.
+**Code fix (GitHub, not deployed):** `start_tracing()` in `llm.py` gives tracing setup 15 s, then the app starts without it
+(`tracing: off ...`). Tested: simulated hang → gives up on time; real setup → tracing on in 4.4 s; `test_app.py` 13/13.
+**Lesson:** nothing optional may block startup; check the live URL after any cold start.
+
 ## 11. Load test — `load_test.py`
 Ramps viewers on the live app (preset profiles → 0 model calls); `busy` viewers retry every 5 s; replicas counted every ~15 s.
 ```powershell

@@ -13,6 +13,7 @@ import asyncio
 import json
 import logging
 import os
+import threading
 
 from agent_framework import BaseChatClient, ChatResponse, Message
 from dotenv import load_dotenv
@@ -40,6 +41,16 @@ async def enable_tracing(client):
     setup = get_chat_client("foundry")  # own client: app.py sets up tracing outside the server's event loop
     await setup.configure_azure_monitor(enable_sensitive_data=os.getenv("TRACING_CONTENT") == "1")
     return True
+
+
+def start_tracing(client, timeout_s=15):
+    """enable_tracing with a time limit, so a slow Foundry never stops the app from starting (27 Oct: it hung
+    for minutes and the health probes restarted the container). Runs in a thread: the hang may block, not await."""
+    result = []
+    worker = threading.Thread(target=lambda: result.append(asyncio.run(enable_tracing(client))), daemon=True)
+    worker.start()
+    worker.join(timeout_s)
+    return bool(result and result[0])
 
 
 class MockChatClient(BaseChatClient):
